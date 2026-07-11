@@ -1,0 +1,44 @@
+"""End-to-end integration test: real Claude API call over a fixture PDF.
+
+Marked `integration` and skipped unless ANTHROPIC_API_KEY is set, so the default
+`pytest` run stays offline. Run it explicitly with:
+
+    uv run pytest -m integration
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import pytest
+
+from arras_ai.analyzer import analyze_pdf
+from arras_ai.models import TipoArras
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not os.getenv("ANTHROPIC_API_KEY"),
+        reason="ANTHROPIC_API_KEY not set; skipping real API call.",
+    ),
+]
+
+
+def test_penitenciales_contract_end_to_end(penitenciales_pdf: Path) -> None:
+    analisis = analyze_pdf(penitenciales_pdf)
+
+    # Modality: the contract states penitenciales and cites art. 1454.
+    assert analisis.tipo_arras is TipoArras.penitenciales
+    assert analisis.confianza_tipo >= 0.7
+    assert any(ref.articulo == "1454" for ref in analisis.referencias_codigo_civil)
+
+    # Amounts.
+    assert analisis.importes.precio_total == pytest.approx(280000, rel=0.01)
+    assert analisis.importes.importe_arras == pytest.approx(28000, rel=0.01)
+
+    # This contract DOES have a financing-contingency clause.
+    assert analisis.tiene_clausula_financiacion is True
+
+    # Both parties were extracted.
+    assert len(analisis.partes) == 2
