@@ -15,7 +15,14 @@ from arras_ai import __version__
 from arras_ai.agent import analizar_pdf
 from arras_ai.analyzer import AnalysisError
 from arras_ai.config import load_settings
-from arras_ai.models import AnalisisArras, InformeArras, NivelRiesgo, Severidad, TipoArras
+from arras_ai.models import (
+    AnalisisArras,
+    Fundamento,
+    InformeArras,
+    NivelRiesgo,
+    Severidad,
+    TipoArras,
+)
 from arras_ai.pdf import PdfExtractionError
 
 app = typer.Typer(
@@ -113,6 +120,19 @@ def _money(value: float | None, currency: str) -> str:
     return f"{value:,.2f} {currency}"
 
 
+_FUNDAMENTO_LABEL = {
+    "doctrina": "Doctrina",
+    "jurisprudencia": "Jurisprudencia",
+}
+
+
+def _render_fundamento(f: Fundamento) -> str:
+    label = _FUNDAMENTO_LABEL.get(f.tipo)
+    if label is None:  # codigo_civil — the reference itself already reads as a citation
+        return f.referencia
+    return f"{label}: {f.referencia}"
+
+
 def _render_informe(informe: InformeArras) -> None:
     _render_human(informe.analisis)
 
@@ -138,7 +158,7 @@ def _render_informe(informe: InformeArras) -> None:
         sev_style = _SEV_STYLE.get(r.severidad, "white")
         recomendacion = r.recomendacion
         if r.referencias:
-            citas = " · ".join(f"{f.referencia}" for f in r.referencias)
+            citas = " · ".join(_render_fundamento(f) for f in r.referencias)
             recomendacion = f"{recomendacion}\n[dim]Cf. {citas}[/dim]"
         tabla.add_row(
             f"[{sev_style}]{r.severidad.value}[/{sev_style}]",

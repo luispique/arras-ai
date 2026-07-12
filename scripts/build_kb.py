@@ -10,8 +10,8 @@ from arras_ai.rag.knowledge_base import KnowledgeBase
 
 
 def main() -> None:
-    kb = KnowledgeBase.build(load_settings())
-    print(f"index ready at {kb.index_dir} ({len(kb.patrones)} patterns)")
+    kb = KnowledgeBase.build(load_settings(), force=True)
+    print(f"index rebuilt at {kb.index_dir} ({len(kb.patrones)} patterns)")
 
 
 if __name__ == "__main__":

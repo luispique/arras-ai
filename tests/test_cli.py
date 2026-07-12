@@ -42,4 +42,5 @@ def test_analyze_renders_citations(
     result = runner.invoke(cli.app, ["analyze", str(penitenciales_pdf)])
     assert result.exit_code == 0
     assert "Cf." in result.stdout  # flattened citation line
+    assert "Doctrina:" in result.stdout  # legal-nature label for the doctrina fundamento
     assert "financiación" in result.stdout.lower()

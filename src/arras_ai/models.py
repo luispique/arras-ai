@@ -225,6 +225,8 @@ class Riesgo(RiesgoBase):
 
 
 class RiesgosDetectadosLLM(BaseModel):
+    """Schema del pase LLM de detección de riesgos (structured output)."""
+
     model_config = ConfigDict(extra="forbid")
 
     riesgos: list[RiesgoLLM] = Field(

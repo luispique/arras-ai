@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
 import pytest
@@ -91,6 +92,65 @@ def test_index_model_mismatch_raises(tmp_path: Path, fake_embedding_model) -> No
         index_dir=idx,
         embedding_model=other,
         store=LanceDBStore(index_dir=idx, dim=other.dim),
+    )
+    with pytest.raises(RuntimeError, match="build_kb"):
+        kb2.ensure_index()
+
+
+def test_rebuild_overwrites_existing_index(tmp_path: Path, fake_embedding_model) -> None:  # type: ignore[no-untyped-def]
+    from arras_ai.rag.store import LanceDBStore
+
+    idx = tmp_path / "idx"
+    kb = KnowledgeBase.from_data_dir(
+        DATA_DIR,
+        index_dir=idx,
+        embedding_model=fake_embedding_model,
+        store=LanceDBStore(index_dir=idx, dim=fake_embedding_model.dim),
+    )
+    kb.ensure_index()
+    expected_count = kb._store.count()  # type: ignore[union-attr]
+    assert expected_count == len(kb.patrones)
+
+    # rebuild() must unconditionally re-embed and overwrite, not raise, even though
+    # the index already exists and nothing changed.
+    kb.rebuild()
+    assert kb._store.count() == expected_count  # type: ignore[union-attr]
+
+    meta = kb._meta_path().read_text(encoding="utf-8")
+    assert kb._patrones_hash() in meta
+
+    # A subsequent ensure_index() against the freshly rebuilt index must not raise.
+    kb.ensure_index()
+
+
+def test_ensure_index_raises_on_patrones_hash_mismatch(  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+    fake_embedding_model,
+) -> None:
+    from arras_ai.rag.store import LanceDBStore
+
+    idx = tmp_path / "idx"
+    kb = KnowledgeBase.from_data_dir(
+        DATA_DIR,
+        index_dir=idx,
+        embedding_model=fake_embedding_model,
+        store=LanceDBStore(index_dir=idx, dim=fake_embedding_model.dim),
+    )
+    kb.ensure_index()  # builds the index and writes meta.json with the current hash
+
+    # Simulate editing data/kb/patrones.yaml: same index dir/model, but a pattern's
+    # text has changed, so texto_indexable() differs and the patrones_hash no longer
+    # matches what is stored in meta.json.
+    edited_patrones = copy.deepcopy(kb.patrones)
+    fin = edited_patrones["financiacion"]
+    edited_patrones["financiacion"] = fin.model_copy(update={"texto": fin.texto + " (editado)"})
+
+    kb2 = KnowledgeBase(
+        articulos=kb.articulos,
+        patrones=edited_patrones,
+        index_dir=idx,
+        embedding_model=fake_embedding_model,
+        store=LanceDBStore(index_dir=idx, dim=fake_embedding_model.dim),
     )
     with pytest.raises(RuntimeError, match="build_kb"):
         kb2.ensure_index()
