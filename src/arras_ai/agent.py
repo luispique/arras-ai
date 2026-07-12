@@ -53,7 +53,9 @@ def detectar_riesgos_llm(
             "risk LLM pass returned no parseable output (stop_reason=%s)", response.stop_reason
         )
         return []
-    return [Riesgo(**base.model_dump(), fuente="llm") for base in parsed.riesgos]
+    return [
+        Riesgo(**base.model_dump(exclude={"patron_ids"}), fuente="llm") for base in parsed.riesgos
+    ]
 
 
 class EstadoAnalisis(BaseModel):

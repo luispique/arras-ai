@@ -85,6 +85,46 @@ def test_riesgos_detectados_llm_has_no_fuente() -> None:
     assert not hasattr(parsed.riesgos[0], "fuente")
 
 
+def test_fundamento_shape() -> None:
+    from arras_ai.models import Fundamento
+
+    f = Fundamento(tipo="codigo_civil", referencia="art. 1454 CC", texto="...")
+    assert f.tipo == "codigo_civil"
+    with pytest.raises(ValidationError):
+        Fundamento(tipo="patron", referencia="x", texto="y")  # type: ignore # not a valid tipo
+
+
+def test_riesgo_referencias_default_empty() -> None:
+    r = Riesgo(
+        categoria=CategoriaRiesgo.otro,
+        severidad=Severidad.baja,
+        descripcion="d",
+        recomendacion="r",
+        fuente="regla",
+    )
+    assert r.referencias == []
+
+
+def test_riesgo_llm_has_patron_ids() -> None:
+    from arras_ai.models import RiesgoLLM, RiesgosDetectadosLLM
+
+    parsed = RiesgosDetectadosLLM.model_validate(
+        {
+            "riesgos": [
+                {
+                    "categoria": "otro",
+                    "severidad": "baja",
+                    "descripcion": "d",
+                    "recomendacion": "r",
+                    "patron_ids": ["financiacion"],
+                }
+            ]
+        }
+    )
+    assert isinstance(parsed.riesgos[0], RiesgoLLM)
+    assert parsed.riesgos[0].patron_ids == ["financiacion"]
+
+
 def test_informe_roundtrips(fake_informe: InformeArras) -> None:
     restored = InformeArras.model_validate_json(fake_informe.model_dump_json())
     assert restored == fake_informe

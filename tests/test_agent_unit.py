@@ -15,7 +15,7 @@ from arras_ai.models import (
     CategoriaRiesgo,
     InformeArras,
     NivelRiesgo,
-    RiesgoBase,
+    RiesgoLLM,
     RiesgosDetectadosLLM,
     Severidad,
 )
@@ -39,7 +39,7 @@ class _FakeClient:
 def test_detectar_riesgos_llm_marks_fuente_llm(fake_analisis: AnalisisArras) -> None:
     parsed = RiesgosDetectadosLLM(
         riesgos=[
-            RiesgoBase(
+            RiesgoLLM(
                 categoria=CategoriaRiesgo.reparto_gastos_ambiguo,
                 severidad=Severidad.baja,
                 descripcion="El reparto de gastos no está claro.",
