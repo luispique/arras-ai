@@ -13,8 +13,9 @@ from pathlib import Path
 
 import pytest
 
+from arras_ai.agent import analizar_pdf
 from arras_ai.analyzer import analyze_pdf
-from arras_ai.models import TipoArras
+from arras_ai.models import CategoriaRiesgo, NivelRiesgo, TipoArras
 
 pytestmark = [
     pytest.mark.integration,
@@ -42,3 +43,22 @@ def test_penitenciales_contract_end_to_end(penitenciales_pdf: Path) -> None:
 
     # Both parties were extracted.
     assert len(analisis.partes) == 2
+
+
+def test_agente_confirmatorias_flags_financing(fixtures_dir: Path) -> None:
+    informe = analizar_pdf(fixtures_dir / "arras_confirmatorias_problematic.pdf")
+    cats = {r.categoria for r in informe.riesgos}
+    assert CategoriaRiesgo.falta_financiacion in cats
+    assert informe.nivel_riesgo_global is NivelRiesgo.alto
+
+
+def test_agente_penitenciales_low_risk(fixtures_dir: Path) -> None:
+    informe = analizar_pdf(fixtures_dir / "arras_penitenciales_clean.pdf")
+    assert informe.nivel_riesgo_global is NivelRiesgo.bajo
+
+
+def test_agente_ambiguo_flags_type_and_financing(fixtures_dir: Path) -> None:
+    informe = analizar_pdf(fixtures_dir / "arras_ambiguas.pdf")
+    cats = {r.categoria for r in informe.riesgos}
+    assert CategoriaRiesgo.tipo_ambiguo in cats
+    assert CategoriaRiesgo.falta_financiacion in cats
