@@ -52,9 +52,14 @@ grounded by exact CC/pattern lookup. Every risk gains a structured list of
    different axis from `Riesgo.fuente` (`regla` | `llm`, how the finding was
    produced) and from Sprint 1's `ReferenciaCodigoCivil` (citations found *inside*
    the contract text). Three distinct concepts; kept separate.
-6. **Lazy index build.** `KnowledgeBase` builds the LanceDB index if missing
-   (idempotent); the index dir is git-ignored; `scripts/build_kb.py` rebuilds
-   explicitly. Source YAML is committed and reviewable — that is the real artifact.
+6. **Lazy index build with model-coherence guard.** `KnowledgeBase` builds the
+   LanceDB index if missing (idempotent); the index dir is git-ignored;
+   `scripts/build_kb.py` rebuilds explicitly. Source YAML is committed and
+   reviewable — that is the real artifact. On build, the embedding **`model_id` and
+   `dim`** are written to `meta.json` in the index dir; on load they are verified
+   against the current embedding model. A mismatch (e.g. `ARRAS_EMBEDDING_PROVIDER`
+   changed without rebuilding) raises a clear error pointing to `build_kb.py` —
+   **never a silent search against an index built with a different model.**
 7. **`riesgos.py` stays pure.** Citation helpers receive the CC/pattern dicts as
    arguments (dependency injection); no KB import in the pure detectors.
 
@@ -121,9 +126,13 @@ ingest.py         # build_index(kb, embedding_model, store) — embed patterns, 
 
 Graph (4 nodes): `extraer → recuperar_contexto → detectar_riesgos → componer_informe`.
 
-- **`recuperar_contexto`** — builds a query from `tipo_arras` + contract text (one
-  retrieval per contract), calls `kb.retrieve(query, k)`, writes
-  `patrones_recuperados: list[PatronHit]` to state. Vector path only.
+- **`recuperar_contexto`** — one retrieval per contract (a single call). The query
+  is a focused string synthesized from the **extracted facts** in `AnalisisArras` —
+  `tipo_arras` + the detected absences (no financing clause, no deadline, no
+  cadastral reference, no charges) + captured fragments (`justificacion_tipo`) —
+  **NOT the raw PDF text** (embedding the whole contract dilutes the ~10% that
+  matters and exceeds the embedder's ~512-token limit). Calls `kb.retrieve(query,
+  k)`, writes `patrones_recuperados: list[PatronHit]` to state. Vector path only.
 - **`detectar_riesgos`**:
   - Rules (`riesgos.py`, pure): after producing each rule `Riesgo`, attach
     `referencias` via a pure **`citar(categoria, articulos_cc, patrones)`** — the
@@ -131,8 +140,10 @@ Graph (4 nodes): `extraer → recuperar_contexto → detectar_riesgos → compon
     the injected in-memory CC/pattern dicts into `Fundamento`s. No LLM, no retrieval.
   - LLM pass: prompt includes `patrones_recuperados` as grounding context and asks
     the model to list the `patron_ids` supporting each finding; code maps those ids
-    to `Fundamento`s (fallback: attach the top-k retrieved patterns as context
-    grounding if the model names none).
+    to `Fundamento`s. If the model names no ids (or only unknown ones),
+    `referencias` stays **empty** — we never attach an unsupported citation. In a
+    legal tool a wrong citation is worse than none; a risk without a citation is
+    acceptable, a risk with a fabricated-by-association citation is not.
 - **`componer_informe`** — unchanged merge/dedup; risks now carry `referencias`.
 
 `EstadoAnalisis` gains `patrones_recuperados: list[PatronHit] = []`. The graph is
@@ -172,8 +183,14 @@ not a breaking change — defaults to `[]`).
     lookups; `retrieve` plumbing (returns `k` hits with intact payloads under
     controlled vectors).
   - `citar(...)` pure function: category → expected `Fundamento`s (deterministic).
+  - `construir_query_recuperacion(analisis)`: the retrieval query is built from
+    extracted facts/absences, contains the `tipo` and detected absences, and is NOT
+    a raw contract-text dump.
+  - Index model-coherence: an index built with one embedding `model_id` and loaded
+    with another raises a clear "rebuild with build_kb.py" error (no silent search).
   - Agent `recuperar_contexto` node with a stub KB; rule risks carry the right
-    `Fundamento`s; LLM `patron_ids` → `Fundamento` mapping incl. unknown-id drop.
+    `Fundamento`s; LLM `patron_ids` → `Fundamento` mapping incl. unknown-id drop AND
+    the no-ids case → empty `referencias` (never fabricate a citation by association).
 - **Integration (real, `-m integration`, skipped without a key) — RELEVANCE lives here:**
   - Real fastembed retrieval returns the financing pattern for a "sin cláusula de
     financiación" query. This is the ONLY test that asserts semantic relevance.
