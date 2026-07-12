@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict
 
 from arras_ai.models import CategoriaRiesgo, Fundamento
+
+if TYPE_CHECKING:
+    from arras_ai.config import Settings
+    from arras_ai.rag.embeddings import EmbeddingModel
+    from arras_ai.rag.store import VectorStore
 
 
 class Articulo(BaseModel):
@@ -65,13 +71,24 @@ class KnowledgeBase:
         articulos: dict[str, Articulo],
         patrones: dict[str, Patron],
         index_dir: Path,
+        embedding_model: EmbeddingModel | None = None,
+        store: VectorStore | None = None,
     ) -> None:
         self.articulos = articulos
         self.patrones = patrones
         self.index_dir = index_dir
+        self._embedding_model = embedding_model
+        self._store = store
 
     @classmethod
-    def from_data_dir(cls, data_dir: Path, *, index_dir: Path) -> KnowledgeBase:
+    def from_data_dir(
+        cls,
+        data_dir: Path,
+        *,
+        index_dir: Path,
+        embedding_model: EmbeddingModel | None = None,
+        store: VectorStore | None = None,
+    ) -> KnowledgeBase:
         articulos = {
             str(a["id"]): Articulo.model_validate(a)
             for a in _load_yaml_list(data_dir / "codigo_civil.yaml")
@@ -80,10 +97,63 @@ class KnowledgeBase:
             str(p["id"]): Patron.model_validate(p)
             for p in _load_yaml_list(data_dir / "patrones.yaml")
         }
-        return cls(articulos, patrones, index_dir)
+        return cls(articulos, patrones, index_dir, embedding_model=embedding_model, store=store)
+
+    @classmethod
+    def build(cls, settings: Settings, data_dir: Path | None = None) -> KnowledgeBase:
+        from arras_ai.rag.embeddings import make_embedding_model
+        from arras_ai.rag.store import LanceDBStore
+
+        data_dir = data_dir or (Path(__file__).resolve().parents[3] / "data" / "kb")
+        index_dir = Path(settings.kb_index_dir)
+        embedding_model = make_embedding_model(settings)
+        store = LanceDBStore(index_dir=index_dir, dim=embedding_model.dim)
+        kb = cls.from_data_dir(
+            data_dir, index_dir=index_dir, embedding_model=embedding_model, store=store
+        )
+        kb.ensure_index()
+        return kb
 
     def get_articulo(self, articulo_id: str) -> Articulo | None:
         return self.articulos.get(articulo_id)
 
     def get_patron(self, patron_id: str) -> Patron | None:
         return self.patrones.get(patron_id)
+
+    def _meta_path(self) -> Path:
+        return self.index_dir / "meta.json"
+
+    def ensure_index(self) -> None:
+        if self._store is None or self._embedding_model is None:
+            raise RuntimeError("KnowledgeBase has no embedding_model/store for indexing")
+        expected = {"model_id": self._embedding_model.model_id, "dim": self._embedding_model.dim}
+        if self._store.count() == 0:
+            from arras_ai.rag.ingest import build_index
+
+            build_index(self, self._embedding_model, self._store)
+            self.index_dir.mkdir(parents=True, exist_ok=True)
+            self._meta_path().write_text(json.dumps(expected), encoding="utf-8")
+            return
+        # Index already built — verify it used the SAME embedding model, else the
+        # query vectors will not match the stored ones and retrieval is garbage.
+        if not self._meta_path().is_file():
+            raise RuntimeError(
+                "KB index has no metadata; rebuild it with `uv run python scripts/build_kb.py`."
+            )
+        actual = json.loads(self._meta_path().read_text(encoding="utf-8"))
+        if actual != expected:
+            raise RuntimeError(
+                f"KB index was built with {actual} but the current embedding model is "
+                f"{expected}. Rebuild it with `uv run python scripts/build_kb.py`."
+            )
+
+    def retrieve(self, query: str, k: int = 4) -> list[PatronHit]:
+        if self._store is None or self._embedding_model is None:
+            raise RuntimeError("KnowledgeBase has no embedding_model/store for retrieval")
+        vector = self._embedding_model.embed_query(query)
+        hits: list[PatronHit] = []
+        for patron_id, score in self._store.query(vector, k):
+            patron = self.patrones.get(patron_id)
+            if patron is not None:
+                hits.append(PatronHit(patron=patron, score=score))
+        return hits

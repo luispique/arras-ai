@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from arras_ai.models import CategoriaRiesgo
 from arras_ai.rag.knowledge_base import KnowledgeBase
 
@@ -45,3 +47,50 @@ def test_patron_como_fundamento() -> None:
     f = patron.como_fundamento()
     assert f.tipo == "doctrina"
     assert f.texto
+
+
+def test_retrieve_plumbing_with_fake_embeddings(tmp_path: Path, fake_embedding_model) -> None:  # type: ignore[no-untyped-def]
+    from arras_ai.rag.store import LanceDBStore
+
+    kb = KnowledgeBase.from_data_dir(
+        DATA_DIR,
+        index_dir=tmp_path / "idx",
+        embedding_model=fake_embedding_model,
+        store=LanceDBStore(index_dir=tmp_path / "idx", dim=fake_embedding_model.dim),
+    )
+    kb.ensure_index()
+    # Query with a pattern's EXACT indexable text -> that pattern is top-1 (identity,
+    # not semantic relevance: the fake embeds identical text to an identical vector).
+    fin = kb.get_patron("financiacion")
+    assert fin is not None
+    hits = kb.retrieve(fin.texto_indexable(), k=3)
+    assert hits and hits[0].patron.id == "financiacion"
+    assert len(hits) <= 3
+
+
+def test_index_model_mismatch_raises(tmp_path: Path, fake_embedding_model) -> None:  # type: ignore[no-untyped-def]
+    from arras_ai.rag.store import LanceDBStore
+
+    idx = tmp_path / "idx"
+    kb = KnowledgeBase.from_data_dir(
+        DATA_DIR,
+        index_dir=idx,
+        embedding_model=fake_embedding_model,
+        store=LanceDBStore(index_dir=idx, dim=fake_embedding_model.dim),
+    )
+    kb.ensure_index()  # writes meta.json with model_id "fake:fake"
+
+    class OtherModel(type(fake_embedding_model)):  # type: ignore[misc]
+        @property
+        def model_id(self) -> str:
+            return "other:model"
+
+    other = OtherModel()
+    kb2 = KnowledgeBase.from_data_dir(
+        DATA_DIR,
+        index_dir=idx,
+        embedding_model=other,
+        store=LanceDBStore(index_dir=idx, dim=other.dim),
+    )
+    with pytest.raises(RuntimeError, match="build_kb"):
+        kb2.ensure_index()
