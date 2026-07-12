@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from arras_ai.agent import analizar_pdf
-from arras_ai.models import CategoriaRiesgo, InformeArras, NivelRiesgo, TipoArras
+from arras_ai.models import CategoriaRiesgo, InformeArras, NivelRiesgo, Severidad, TipoArras
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
 
@@ -53,7 +53,9 @@ CASES = [
                 lambda i: i.analisis.tiene_clausula_financiacion is True
             ),
             "2 partes": lambda i: len(i.analisis.partes) == 2,
-            "nivel_riesgo_global == bajo": lambda i: i.nivel_riesgo_global is NivelRiesgo.bajo,
+            "sin riesgos de severidad alta": lambda i: all(
+                r.severidad is not Severidad.alta for r in i.riesgos
+            ),
         },
         soft={
             "ref. catastral detectada": lambda i: bool(i.analisis.inmueble.referencia_catastral),

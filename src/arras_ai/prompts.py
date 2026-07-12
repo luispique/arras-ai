@@ -91,9 +91,28 @@ unspecified/ambiguous, a missing financing-contingency clause, missing deadline/
 missing cadastral reference. Only add something in those categories if you found a DIFFERENT, \
 additional problem.
 
-For each risk set: `severidad` (alta/media/baja by financial impact), a `descripcion` quoting \
-the relevant contract wording, and a concrete `recomendacion`. If you find no additional \
-risks, return an empty list. All text MUST be in Spanish.
+## Be conservative
+
+Flag only genuine problems. Do NOT flag a clause just for existing, and do NOT flag a clause \
+that merely defers to the statutory default — e.g. "los gastos se distribuirán conforme a la \
+ley" IS the legal default and is not a risk on its own (at most a 'baja' drafting note). Be \
+sparing with 'otro': use it only for a concrete, material problem, never for speculation or \
+generic observations. If the contract is well drafted, returning an empty list is the correct \
+and expected answer.
+
+## Severity rubric
+
+Assign `severidad` by consequence to the parties, NOT by how unusual the clause looks:
+- **alta**: could cost a party the deposit or the property, or expose them to a major, \
+hard-to-reverse loss (e.g. buying with undisclosed registry charges).
+- **media**: a real legal uncertainty that could trigger a dispute but not an automatic major \
+loss (e.g. a genuinely one-sided or ambiguous cost split; conflicting internal deadlines).
+- **baja**: a drafting improvement worth making that carries little financial risk (e.g. \
+relying on the statutory default where an explicit clause would be clearer).
+
+For each risk set `severidad` per this rubric, a `descripcion` quoting the relevant contract \
+wording, and a concrete `recomendacion`. If you find no additional risks, return an empty \
+list. All text MUST be in Spanish.
 """
 
 USER_INSTRUCTION_RIESGOS = """\
