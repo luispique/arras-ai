@@ -206,8 +206,11 @@ PDF ──▶ extraer ──▶ recuperar_contexto ──▶ detectar_riesgos �
   for the "obvious" problems (missing type, no financing clause, undefined
   dates, an unidentified property), and a focused Claude pass adds nuance a rule
   can't catch (an ambiguous cost split) plus user-facing recommendations,
-  grounded in the retrieved patterns. Every risk carries the legal
-  fundamentos (Código Civil articles or doctrine) that support it.
+  grounded in the retrieved patterns. Each risk carries a `referencias` field
+  with the legal fundamentos backing it — rule-based risks always cite the
+  relevant Código Civil article or doctrine pattern, while an LLM-found risk
+  carries a citation only when it maps to a specific pattern (never a
+  fabricated one).
 - **`componer_informe`** — merges rule and LLM risks (rules win on overlap) and
   computes an overall `nivel_riesgo_global` (`alto`/`medio`/`bajo`) from the
   worst severity found.

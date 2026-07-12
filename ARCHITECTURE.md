@@ -216,6 +216,6 @@ is the core abstraction and type errors in it would be silent data bugs.
 
 ## Deliberately out of scope for Sprint 1
 
-LangGraph agent (Sprint 2), vector store / RAG (Sprint 3), eval harness with
+LangGraph agent (Sprint 2), vector store / RAG (delivered in Sprint 3), eval harness with
 ground truth (Sprint 4), web frontend (Sprint 5), and MCP server (Sprint 6). The
 module boundaries above are drawn so each can be added without a rewrite.
