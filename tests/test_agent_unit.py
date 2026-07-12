@@ -6,11 +6,15 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import anthropic
+import pytest
 
 from arras_ai import agent
+from arras_ai.analyzer import AnalysisError
 from arras_ai.models import (
     AnalisisArras,
     CategoriaRiesgo,
+    InformeArras,
+    NivelRiesgo,
     RiesgoBase,
     RiesgosDetectadosLLM,
     Severidad,
@@ -58,3 +62,49 @@ def test_detectar_riesgos_llm_returns_empty_when_unparsed(fake_analisis: Analisi
         "texto", fake_analisis, client=cast(anthropic.Anthropic, client)
     )
     assert riesgos == []
+
+
+def _stub_extract(monkeypatch: pytest.MonkeyPatch, analisis: AnalisisArras) -> None:
+    monkeypatch.setattr(agent, "analyze_text", lambda *a, **k: analisis)
+
+
+def test_analizar_texto_builds_informe(
+    monkeypatch: pytest.MonkeyPatch, fake_analisis: AnalisisArras
+) -> None:
+    # extraction returns a contract missing the financing clause -> rule risk
+    analisis = fake_analisis.model_copy(update={"tiene_clausula_financiacion": False})
+    _stub_extract(monkeypatch, analisis)
+    monkeypatch.setattr(agent, "detectar_riesgos_llm", lambda *a, **k: [])
+
+    informe = agent.analizar_texto(
+        "texto", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace()))
+    )
+    assert isinstance(informe, InformeArras)
+    assert any(r.categoria is CategoriaRiesgo.falta_financiacion for r in informe.riesgos)
+    assert informe.nivel_riesgo_global is NivelRiesgo.alto
+
+
+def test_analizar_texto_degrades_when_llm_fails(
+    monkeypatch: pytest.MonkeyPatch, fake_analisis: AnalisisArras
+) -> None:
+    analisis = fake_analisis.model_copy(update={"tiene_clausula_financiacion": False})
+    _stub_extract(monkeypatch, analisis)
+
+    def _boom(*a: Any, **k: Any) -> list[Any]:
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(agent, "detectar_riesgos_llm", _boom)
+
+    informe = agent.analizar_texto(
+        "texto", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace()))
+    )
+    # still produced from rule risks
+    assert any(r.fuente == "regla" for r in informe.riesgos)
+    assert all(r.fuente == "regla" for r in informe.riesgos)
+
+
+def test_analizar_texto_rejects_empty() -> None:
+    with pytest.raises(AnalysisError):
+        agent.analizar_texto(
+            "   ", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace()))
+        )
