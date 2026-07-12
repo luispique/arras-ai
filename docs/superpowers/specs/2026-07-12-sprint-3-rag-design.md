@@ -7,7 +7,8 @@
 ## Goal
 
 Ground the risk report in a legal knowledge base so each detected risk carries a
-verifiable citation. Two distinct mechanisms, deliberately NOT both "RAG":
+verifiable legal basis (`Fundamento`). Two distinct mechanisms, deliberately NOT
+both "RAG":
 
 1. **Código Civil** — a small, fixed set of articles with a known, deterministic
    mapping to risk types (penitenciales→1454, penales→1152/1153, …). Loaded in
@@ -19,16 +20,16 @@ verifiable citation. Two distinct mechanisms, deliberately NOT both "RAG":
    surface: open-ended matching of contract prose to known problem patterns.
 
 The LLM risk pass is grounded in retrieved patterns; deterministic rule risks are
-cited by exact CC/pattern lookup. Every risk gains structured `referencias`.
+grounded by exact CC/pattern lookup. Every risk gains a structured list of
+`Fundamento`s.
 
 ### Non-goals (deferred)
 
-- Full jurisprudence corpus / redistributing court rulings (authored, cited
-  pattern+doctrine notes only in Sprint 3).
-- Per-clause retrieval (Sprint 3 retrieves once per contract; per-clause is a
-  later refinement).
-- Evals / ground-truth dataset (Sprint 4).
-- Web/CLI packaging beyond the existing CLI (Sprint 5+).
+- Full jurisprudence corpus / redistributing court rulings — the `jurisprudencia`
+  citation type exists in the schema but is not populated in Sprint 3 (authored
+  `codigo_civil` + `doctrina` entries only).
+- Per-clause retrieval (Sprint 3 retrieves once per contract).
+- Evals / ground-truth dataset (Sprint 4). Web/packaging (Sprint 5+).
 
 ## Architecture decisions
 
@@ -39,14 +40,18 @@ cited by exact CC/pattern lookup. Every risk gains structured `referencias`.
    abstract interface; the default `FastEmbedModel` (ONNX, multilingual, no key,
    no torch) works offline on clone. `OpenAIEmbeddingModel` and
    `VoyageEmbeddingModel` are optional adapters (lazy-imported; require an extra +
-   API key). Honors the project's "no mandatory SaaS default / no vendor lock-in"
-   constraint while satisfying the "abstract interfaces where they earn it" goal.
+   API key). Honors "no mandatory SaaS default / no vendor lock-in" while
+   satisfying "abstract interfaces where they earn it".
 3. **LanceDB behind a `VectorStore` interface.** Embedded, file-based, no server,
    Apache-2.0. Swappable via the interface.
 4. **Explicit retrieval node.** The graph gains `recuperar_contexto`, making the
    RAG step visible in the state machine and giving Sprint 4 evals a seam.
-5. **Structured citations.** Risks carry `referencias: list[ReferenciaLegal]` —
-   additive, backward-compatible.
+5. **Structured citations (`Fundamento`).** Risks carry
+   `referencias: list[Fundamento]` — additive, backward-compatible. The citation's
+   `tipo` is its legal nature (`codigo_civil` | `doctrina` | `jurisprudencia`), a
+   different axis from `Riesgo.fuente` (`regla` | `llm`, how the finding was
+   produced) and from Sprint 1's `ReferenciaCodigoCivil` (citations found *inside*
+   the contract text). Three distinct concepts; kept separate.
 6. **Lazy index build.** `KnowledgeBase` builds the LanceDB index if missing
    (idempotent); the index dir is git-ignored; `scripts/build_kb.py` rebuilds
    explicitly. Source YAML is committed and reviewable — that is the real artifact.
@@ -58,36 +63,43 @@ cited by exact CC/pattern lookup. Every risk gains structured `referencias`.
 - `codigo_civil.yaml` — list of `{id, articulo, titulo, texto}` for the relevant
   articles (1454, 1152, 1153, and connected 1124/1100/1101). Official BOE text
   (public domain). Loaded into an in-memory dict keyed by `id` (== article number).
-- `patrones.yaml` — list of `{id, titulo, categoria, texto, referencia}` authored
-  problematic-clause / doctrine notes (e.g. id `financiacion` → categoria
-  `falta_financiacion`). Loaded into an in-memory dict by `id` AND embedded into
-  the LanceDB index (document = `titulo` + `texto`, metadata = the rest).
+  A CC entry yields a `Fundamento(tipo="codigo_civil", referencia="art. {articulo} CC",
+  texto=<article text>)`.
+- `patrones.yaml` — list of `{id, titulo, categoria, tipo, referencia, texto}`
+  authored problematic-clause / doctrine notes (e.g. id `financiacion` → categoria
+  `falta_financiacion`, `tipo: doctrina`). `texto` (+ `titulo`) is embedded into the
+  LanceDB index for retrieval; the entry is also held in an in-memory dict by `id`.
+  A pattern entry yields a `Fundamento(tipo=<entry.tipo>, referencia=<entry.referencia>,
+  texto=<entry.texto>)`. `tipo` is `doctrina` for Sprint 3 entries (`jurisprudencia`
+  reserved for later).
 
 A static `CATEGORIA_REFERENCIAS: dict[CategoriaRiesgo, list[tuple[Literal["codigo_civil",
-"patron"], str]]]` maps each deterministic risk category to concrete reference keys —
-`(tipo_fuente, id)` tuples — that cite it (e.g. `tipo_ambiguo → [("codigo_civil", "1454")]`,
-`falta_financiacion → [("patron", "financiacion")]`).
+"patron"], str]]]` maps each deterministic risk category to concrete **source keys** —
+`(fuente, id)` tuples where `fuente` selects the CC dict or the pattern dict — e.g.
+`tipo_ambiguo → [("codigo_civil", "1454")]`, `falta_financiacion → [("patron",
+"financiacion")]`. Each key resolves (via the in-memory dicts) to a `Fundamento`. Note:
+`fuente` here is the internal store selector; the resulting `Fundamento.tipo` is the
+legal nature taken from the resolved entry.
 
 ## Data models (`models.py`)
 
 `AnalisisArras` and existing risk models unchanged except the additive field.
 
 ```python
-class ReferenciaLegal(BaseModel):        # extra="forbid"
-    fuente_id: str
-    tipo_fuente: Literal["codigo_civil", "patron"]
-    titulo: str          # "Art. 1454 CC" / "Patrón: falta de condición suspensiva"
-    extracto: str        # snippet for verification
+class Fundamento(BaseModel):        # extra="forbid" — legal grounding for a risk
+    tipo: Literal["codigo_civil", "doctrina", "jurisprudencia"]
+    referencia: str      # "art. 1454 CC" / doctrine cite / (future) "STS 123/2015"
+    texto: str           # the grounding text / snippet, for verification
 
 class Riesgo(RiesgoBase):
-    fuente: Literal["regla", "llm"]
-    referencias: list[ReferenciaLegal] = []   # NEW, additive
+    fuente: Literal["regla", "llm"]        # how the FINDING was produced
+    referencias: list[Fundamento] = []     # NEW, additive — the legal grounding
 ```
 
-The LLM risk schema (`RiesgoBase` used in `RiesgosDetectadosLLM`) gains an optional
+The LLM risk schema (`RiesgoBase` in `RiesgosDetectadosLLM`) gains an optional
 `patron_ids: list[str] = []` so the model can name the retrieved patterns it used;
-these map to `ReferenciaLegal` in code (the model never fabricates `referencias`
-directly). Unknown ids are dropped.
+code maps each known id to its `Fundamento` (via `get_patron`). The model never
+fabricates `Fundamento`s directly; unknown ids are dropped.
 
 ## `rag` package (`src/arras_ai/rag/`)
 
@@ -101,6 +113,7 @@ knowledge_base.py # KnowledgeBase: loads YAML; get_articulo(id); get_patron(id);
 ingest.py         # build_index(kb, embedding_model, store) — embed patterns, populate store
 ```
 
+`PatronHit` = the matched pattern entry + similarity score.
 `make_embedding_model(settings)` picks the adapter by `ARRAS_EMBEDDING_PROVIDER`
 (lazy-importing hosted adapters, raising a clear error if the extra is missing).
 
@@ -113,12 +126,13 @@ Graph (4 nodes): `extraer → recuperar_contexto → detectar_riesgos → compon
   `patrones_recuperados: list[PatronHit]` to state. Vector path only.
 - **`detectar_riesgos`**:
   - Rules (`riesgos.py`, pure): after producing each rule `Riesgo`, attach
-    `referencias` via a pure `citar(categoria, articulos_cc, patrones)` using
-    `CATEGORIA_REFERENCIAS` + the injected in-memory dicts.
+    `referencias` via a pure **`citar(categoria, articulos_cc, patrones)`** — the
+    deterministic function that resolves `CATEGORIA_REFERENCIAS[categoria]` against
+    the injected in-memory CC/pattern dicts into `Fundamento`s. No LLM, no retrieval.
   - LLM pass: prompt includes `patrones_recuperados` as grounding context and asks
     the model to list the `patron_ids` supporting each finding; code maps those ids
-    to `ReferenciaLegal` (fallback: attach the top-k retrieved patterns as context
-    references if the model names none).
+    to `Fundamento`s (fallback: attach the top-k retrieved patterns as context
+    grounding if the model names none).
 - **`componer_informe`** — unchanged merge/dedup; risks now carry `referencias`.
 
 `EstadoAnalisis` gains `patrones_recuperados: list[PatronHit] = []`. The graph is
@@ -137,54 +151,65 @@ adapters via `[project.optional-dependencies]` (`openai`, `voyage`), lazy-import
 
 ## CLI (`cli.py`)
 
-Each risk renders its `referencias` as a sub-line (e.g. `Cf. art. 1454 CC · Patrón:
-falta de condición suspensiva`). `--json` includes `referencias` (additive; not a
-breaking change — `referencias` defaults to `[]`).
+Each risk renders its `referencias` as a **flattened view** of the structured
+`Fundamento` data — a sub-line like `Cf. art. 1454 CC · Patrón: falta de condición
+suspensiva`. The underlying data (CLI object model and `--json`) is the typed
+`list[Fundamento]`, not a plain string. `--json` includes `referencias` (additive;
+not a breaking change — defaults to `[]`).
 
 ## Testing
 
-- **Unit (offline, no network, no model download):**
-  - `FakeEmbeddingModel` (deterministic vectors, e.g. hashed) so vector-store and
-    retrieval plumbing are tested without downloading ONNX.
-  - `LanceDBStore` add/query in a tmp dir with fake vectors.
+- **Unit (offline, no network, no model download) — PLUMBING ONLY:**
+  - `FakeEmbeddingModel` returns deterministic vectors with **no semantic
+    structure** (e.g. hashed). It therefore tests only the *plumbing*, never
+    retrieval relevance. Tests are named and framed accordingly
+    (`test_store_roundtrip_and_topk`, not "returns the relevant pattern").
+  - `LanceDBStore`: add then query with **controlled vectors** (query vector equal
+    or near a known seeded vector) asserts correct top-k ordering, `k` count, and
+    metadata/payload round-trip — NOT that a semantically related query finds the
+    right pattern.
   - `KnowledgeBase`: YAML loading; `get_articulo`/`get_patron` deterministic
-    lookups; `retrieve` returns the seeded pattern for a query (plumbing).
-  - `citar(...)` pure function: category → expected `ReferenciaLegal`s.
-  - Agent `recuperar_contexto` node with a stub KB; risks carry `referencias`;
-    LLM `patron_ids` → `ReferenciaLegal` mapping incl. unknown-id drop.
-- **Integration (real, `-m integration`, skipped without a key):**
+    lookups; `retrieve` plumbing (returns `k` hits with intact payloads under
+    controlled vectors).
+  - `citar(...)` pure function: category → expected `Fundamento`s (deterministic).
+  - Agent `recuperar_contexto` node with a stub KB; rule risks carry the right
+    `Fundamento`s; LLM `patron_ids` → `Fundamento` mapping incl. unknown-id drop.
+- **Integration (real, `-m integration`, skipped without a key) — RELEVANCE lives here:**
   - Real fastembed retrieval returns the financing pattern for a "sin cláusula de
-    financiación" query (semantic quality).
+    financiación" query. This is the ONLY test that asserts semantic relevance.
   - Full agent over fixtures produces risks WITH `referencias`: confirmatorias
-    problematic → a risk cites the financing pattern; penitenciales → `tipo`/type
-    context cites art. 1454. `nivel` behavior from Sprint 2 unchanged.
+    problematic → a risk grounded in the financing pattern (`tipo` doctrina);
+    penitenciales → the type finding grounded in `art. 1454 CC` (`tipo`
+    codigo_civil). Sprint 2 `nivel` behavior unchanged.
   - `scripts/smoke_test.py` extended to print/verify citations.
 
 ## Docs
 
 - `ARCHITECTURE.md`: Sprint 3 section — the two-path KB and why CC is a
-  deterministic lookup not RAG; the `EmbeddingModel`/`VectorStore` abstractions
-  and local default; LanceDB; lazy hosted adapters; the retrieval node + citations.
+  deterministic lookup not RAG; the `EmbeddingModel`/`VectorStore` abstractions and
+  local default; LanceDB; lazy hosted adapters; the retrieval node; and the
+  `Fundamento` citation model (legal-nature taxonomy, distinct from `fuente`).
 - `README.md`: update the "How it works" diagram (4 nodes), tick Sprint 3 in the
-  roadmap, refresh the demo to show citations under a risk.
+  roadmap, refresh the demo to show a `Fundamento` citation under a risk.
 
 ## Success criteria
 
 - `ruff check` / `ruff format --check` / `mypy --strict` / `pytest` all green
-  (offline suite uses `FakeEmbeddingModel`; integration skipped without a key).
+  (offline suite uses `FakeEmbeddingModel` for PLUMBING; integration skipped
+  without a key).
 - Clone → `uv sync` → first `arras analyze` builds the index and runs offline with
   no extra keys.
-- Live: retrieval returns the relevant pattern; the agent attaches verifiable
-  `referencias` to risks (integration + smoke test).
+- Live: retrieval returns the relevant pattern (integration); the agent attaches
+  verifiable `Fundamento`s to risks (integration + smoke test).
 
 ## Future project context (recorded here for traceability; NOT built in Sprint 3)
 
 - **Distribution (Sprint 5+): web, not Electron.** Two layers: (1) Core = CLI +
-  Docker + MCP server, self-hosted, bring-your-own API key or Ollama — this is
-  where the portfolio value lives (RAG, LangGraph, evals, MCP). (2) Public demo =
-  web (Astro + Vercel) using the project's key, protected by aggressive per-IP rate
-  limiting + a pre-loaded example. Showcase, not an unlimited service.
+  Docker + MCP server, self-hosted, bring-your-own API key or Ollama — where the
+  portfolio value lives (RAG, LangGraph, evals, MCP). (2) Public demo = web (Astro
+  + Vercel) using the project's key, aggressive per-IP rate limiting + a pre-loaded
+  example. Showcase, not an unlimited service.
 - **Business model: no freemium/billing now.** Documented as open-core vision in
   the README, not built; billing only post-launch with real traction. MIT vs
-  monetization tension noted (MIT gives no commercial moat) — irrelevant for the
-  portfolio, revisit only if the business ever matters.
+  monetization tension noted — irrelevant for the portfolio, revisit only if the
+  business ever matters.
