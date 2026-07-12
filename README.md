@@ -38,12 +38,27 @@ ninguna modalidad expresa.
 │ Límite escritura      │ —                                      │
 │ Cláusula financiación │ no                                     │
 └──────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────── arras-ai ─────────────────────────────────╮
+│ Nivel de riesgo global: ALTO                                               │
+╰────────────────────────────────────────────────────────────────────────────╯
+                                Riesgos detectados
+┌───────┬──────────────────────┬───────────────────────────────┬───────────────────────────────┐
+│ Sev.  │ Categoría            │ Descripción                   │ Recomendación                 │
+├───────┼──────────────────────┼───────────────────────────────┼───────────────────────────────┤
+│ alta  │ falta_financiacion   │ No consta cláusula suspensiva │ Incluye condición suspensiva  │
+│       │                      │ de financiación...            │ de financiación...            │
+│ media │ fechas_mal_definidas │ No se fija fecha límite ni    │ Fija una fecha límite         │
+│       │                      │ plazo para la escritura...    │ concreta para la escritura... │
+└───────┴──────────────────────┴───────────────────────────────┴───────────────────────────────┘
 ```
 
-That one screen surfaces three real risks: the contract is *confirmatorias* (the
-buyer **cannot** walk away and keep their options open), it has **no financing
-contingency** (if the bank denies the mortgage, the €10,000 is at risk), and it
-sets **no deadline** for the deed.
+That one screen surfaces the same three problems in two forms: the extraction
+shows the contract is *confirmatorias* with no financing clause and no deadline,
+and the risk report turns that into a **`Nivel de riesgo global: ALTO`** verdict
+plus the concrete `alta`-severity risk (no financing contingency — the buyer
+**can lose the €10,000** if the bank denies the mortgage) and `media`-severity
+risks (no deadline for the deed) that explain why.
 
 ---
 
@@ -80,7 +95,7 @@ professional about — or at least what you're signing.
 
 ## What this does
 
-Point it at a PDF and it returns a structured analysis:
+Point it at a PDF and it returns a structured analysis plus a risk report:
 
 - **Type of arras** detected, with a confidence score and a justification that
   quotes the deciding clause (or flags that the contract never says).
@@ -90,6 +105,12 @@ Point it at a PDF and it returns a structured analysis:
 - **Property** — address, cadastral reference, registry charges.
 - **Código Civil references** actually cited in the text.
 - Whether a **financing-contingency clause** is present.
+- A **risk report**: an overall `Nivel de riesgo` (`alto`/`medio`/`bajo`) and a
+  list of the specific problems found, each with a severity, a description
+  quoting what's wrong, and a recommendation of what to ask or fix. A
+  well-drafted contract can come back with no risks at all — the tool is
+  conservative and only flags genuine problems, not clauses that merely rely on
+  the statutory default.
 
 Add `--json` for machine-readable output you can pipe into anything:
 
@@ -99,12 +120,31 @@ $ arras analyze piso_valencia.pdf --json
 
 ```json
 {
-  "tipo_arras": "confirmatorias",
-  "confianza_tipo": 0.78,
-  "justificacion_tipo": "El documento entrega la señal \"a cuenta del precio\"...",
-  "importes": { "precio_total": 190000.0, "importe_arras": 10000.0, "porcentaje_arras": 5.26, "moneda": "EUR" },
-  "tiene_clausula_financiacion": false,
-  "referencias_codigo_civil": []
+  "analisis": {
+    "tipo_arras": "confirmatorias",
+    "confianza_tipo": 0.78,
+    "justificacion_tipo": "El documento entrega la señal \"a cuenta del precio\"...",
+    "importes": { "precio_total": 190000.0, "importe_arras": 10000.0, "porcentaje_arras": 5.26, "moneda": "EUR" },
+    "tiene_clausula_financiacion": false,
+    "referencias_codigo_civil": []
+  },
+  "riesgos": [
+    {
+      "categoria": "falta_financiacion",
+      "severidad": "alta",
+      "descripcion": "No consta cláusula suspensiva de financiación...",
+      "recomendacion": "Incluye una condición suspensiva de financiación...",
+      "fuente": "regla"
+    },
+    {
+      "categoria": "fechas_mal_definidas",
+      "severidad": "media",
+      "descripcion": "No se fija fecha límite ni plazo para otorgar la escritura pública.",
+      "recomendacion": "Fija una fecha límite concreta (o un plazo en días)...",
+      "fuente": "regla"
+    }
+  ],
+  "nivel_riesgo_global": "alto"
 }
 ```
 
@@ -130,25 +170,36 @@ uv run arras analyze tests/fixtures/arras_confirmatorias_problematic.pdf
 
 ## How it works
 
-Sprint 1 is a deliberately simple, linear pipeline:
+A LangGraph agent (`agent.py`) drives a 3-node pipeline from PDF to risk report:
 
 ```
-PDF ──▶ text ──▶ prompt + Pydantic schema ──▶ Claude ──▶ typed analysis ──▶ table / JSON
-   pdfplumber        prompts.py                 opus 4.8     structured output
+PDF ──▶ extraer ──▶ detectar_riesgos ──▶ componer_informe ──▶ InformeArras
+      (Claude,             (rules +              (pure merge:          (analysis +
+       structured           one Claude            riesgos,               riesgos +
+       output →             pass for               nivel_riesgo_          nivel_riesgo_
+       AnalisisArras)        nuance)                 global)               global)
 ```
 
-- **PDF → text** with `pdfplumber` (MIT-licensed).
-- **Extraction & classification** in a single call to Claude using **structured
-  outputs**: the model is constrained to a [Pydantic
-  schema](src/arras_ai/models.py), so the result is validated, typed data — not
-  free text to parse.
-- The **prompt** embeds the legal framework (the three modalities, the relevant
-  articles, and the "default to confirmatorias when ambiguous" rule) so the
-  classification is grounded, not guessed.
+- **`extraer`** — PDF text (via `pdfplumber`, MIT-licensed) goes to Claude in a
+  single call using **structured outputs**: the model is constrained to a
+  [Pydantic schema](src/arras_ai/models.py), so the result is validated, typed
+  data (`AnalisisArras`) — not free text to parse. The prompt embeds the legal
+  framework (the three modalities, the relevant articles, the "default to
+  confirmatorias when ambiguous" rule).
+- **`detectar_riesgos`** — deterministic rules check the structured extraction
+  for the "obvious" problems (missing type, no financing clause, undefined
+  dates, an unidentified property), and a focused Claude pass adds nuance a rule
+  can't catch (an ambiguous cost split) plus user-facing recommendations.
+- **`componer_informe`** — merges rule and LLM risks (rules win on overlap) and
+  computes an overall `nivel_riesgo_global` (`alto`/`medio`/`bajo`) from the
+  worst severity found.
 
-Every technical choice — Python, uv, pdfplumber over PyMuPDF (a licensing call),
-and the hybrid English-instructions / Spanish-domain prompt strategy — is argued
-in [ARCHITECTURE.md](ARCHITECTURE.md).
+LangGraph here is orchestration only — the nodes call Claude directly through
+the `anthropic` SDK, not through a LangChain model. See
+[ARCHITECTURE.md](ARCHITECTURE.md#sprint-2-the-langgraph-agent-and-risk-detection)
+for why, and for every other technical choice — Python, uv, pdfplumber over
+PyMuPDF (a licensing call), and the hybrid English-instructions /
+Spanish-domain prompt strategy.
 
 ## Roadmap
 
@@ -157,8 +208,8 @@ following slots in without a rewrite:
 
 - [x] **Sprint 1 — Foundation.** CLI, robust PDF parsing, structured extraction
       with Claude, typed schema, tests, fixtures.
-- [ ] **Sprint 2 — Agent.** Replace the single call with a LangGraph state
-      machine (extract → classify → check clauses → assess risk).
+- [x] **Sprint 2 — Agent.** A LangGraph state machine (extract → detect risks →
+      compose report) replaces the single call and adds a risk report.
 - [ ] **Sprint 3 — RAG.** A local vector store of problematic-clause patterns and
       Spanish case law to ground the risk assessment.
 - [ ] **Sprint 4 — Evals.** A ground-truth dataset and an LLM-as-judge harness to

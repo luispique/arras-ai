@@ -120,6 +120,43 @@ Spanish where meaning lives, and is easy to revisit: the split is confined to
 `prompts.py` and the schema descriptions, so it can be A/B tested in the eval
 sprint rather than argued in the abstract forever.
 
+## Sprint 2: the LangGraph agent and risk detection
+
+Sprint 2 replaces the single `analyze_text` call with a 3-node linear
+`StateGraph` (`agent.py`): `extraer` → `detectar_riesgos` → `componer_informe`.
+State is a typed Pydantic model (`EstadoAnalisis`), consistent with the rest of
+the codebase's `mypy --strict` discipline rather than the untyped dict state
+LangGraph allows by default.
+
+**LangGraph is used for orchestration only.** Nodes call Claude directly through
+the `anthropic` SDK's `messages.parse`, the same structured-output path validated
+in Sprint 1 — there is no `langchain-anthropic` model in the graph. This keeps
+the dependency footprint small, reuses code and tests that already work, is
+straightforward to unit-test (call a node function, assert on the returned
+state), and avoids provider lock-in to LangChain's model abstraction.
+
+**Risk detection is hybrid.** `riesgos.py` holds deterministic detectors — pure
+functions over the structured `AnalisisArras` (no API calls) that catch the
+"obvious" problems: missing type, no financing clause, undefined dates, an
+unidentified property. They're free, reliable, and trivially unit-tested, and
+they will double as ground truth for the Sprint 4 eval harness. A single focused
+LLM pass then adds what rules can't reach — nuance like an ambiguous cost split,
+plus user-facing recommendations. A pure `componer_informe` merges the two lists,
+deduping only categories a rule already covers (rules win; `otro` is never
+deduped) and setting the global level to the maximum severity present.
+
+Severity (`alta`/`media`/`baja`) is assigned by consequence, not by how unusual a
+clause looks — calibrated during testing to be conservative: the LLM is told not
+to flag statutory-default clauses (e.g. "gastos conforme a la ley") and to use
+`otro` sparingly, so a well-drafted contract can legitimately come back with no
+risks.
+
+The result, `InformeArras`, wraps the unchanged `AnalisisArras` alongside
+`riesgos: list[Riesgo]` and `nivel_riesgo_global` — extraction and judgement stay
+separate types, so Sprint 1 consumers of `AnalisisArras` are unaffected. If the
+LLM risk pass fails (timeout, bad output), the node catches it and the report is
+still produced from the deterministic rule risks alone — degraded, not broken.
+
 ## Testing strategy
 
 - **Unit tests** (offline, default `pytest` run): schema validation, PDF
