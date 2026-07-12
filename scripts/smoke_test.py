@@ -1,0 +1,141 @@
+"""Manual smoke test: run the analyzer over the three synthetic fixtures with a
+real Claude call and check the output against what we expect.
+
+Unlike the pytest suite this is a developer tool, not CI — it makes real API
+calls and prints a human-readable report. Needs ANTHROPIC_API_KEY (it reads
+.env automatically via the same settings the CLI uses).
+
+    uv run python scripts/smoke_test.py
+"""
+
+from __future__ import annotations
+
+import sys
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from arras_ai.analyzer import analyze_pdf
+from arras_ai.models import AnalisisArras, TipoArras
+
+FIXTURES_DIR = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
+
+Check = Callable[[AnalisisArras], bool]
+
+
+@dataclass
+class Case:
+    fixture: str
+    label: str
+    # hard expectations: must pass, or the case fails
+    hard: dict[str, Check] = field(default_factory=dict)
+    # soft expectations: reported but do not fail the run (judgement calls)
+    soft: dict[str, Check] = field(default_factory=dict)
+
+
+def approx(value: float | None, target: float, rel: float = 0.02) -> bool:
+    return value is not None and abs(value - target) <= abs(target) * rel
+
+
+CASES = [
+    Case(
+        fixture="arras_penitenciales_clean.pdf",
+        label="Penitenciales (well-drafted)",
+        hard={
+            "tipo == penitenciales": lambda a: a.tipo_arras is TipoArras.penitenciales,
+            "confianza >= 0.7": lambda a: a.confianza_tipo >= 0.7,
+            "cita art. 1454": lambda a: any(
+                r.articulo == "1454" for r in a.referencias_codigo_civil
+            ),
+            "precio_total ~ 280000": lambda a: approx(a.importes.precio_total, 280000),
+            "importe_arras ~ 28000": lambda a: approx(a.importes.importe_arras, 28000),
+            "tiene_clausula_financiacion == True": lambda a: a.tiene_clausula_financiacion is True,
+            "2 partes": lambda a: len(a.partes) == 2,
+        },
+        soft={
+            "ref. catastral detectada": lambda a: bool(a.inmueble.referencia_catastral),
+        },
+    ),
+    Case(
+        fixture="arras_confirmatorias_problematic.pdf",
+        label="Confirmatorias (problematic)",
+        hard={
+            "tipo == confirmatorias": lambda a: a.tipo_arras is TipoArras.confirmatorias,
+            "precio_total ~ 190000": lambda a: approx(a.importes.precio_total, 190000),
+            "importe_arras ~ 10000": lambda a: approx(a.importes.importe_arras, 10000),
+            "NO cláusula financiación": lambda a: a.tiene_clausula_financiacion is False,
+        },
+        soft={
+            "sin ref. catastral (no consta)": lambda a: a.inmueble.referencia_catastral is None,
+            "sin fecha límite (plazo vago)": lambda a: a.fechas.fecha_limite_escritura is None,
+        },
+    ),
+    Case(
+        fixture="arras_ambiguas.pdf",
+        label="Ambiguous (type not stated)",
+        hard={
+            "precio_total ~ 210000": lambda a: approx(a.importes.precio_total, 210000),
+            "importe_arras ~ 15000": lambda a: approx(a.importes.importe_arras, 15000),
+            "NO cláusula financiación": lambda a: a.tiene_clausula_financiacion is False,
+        },
+        soft={
+            # The key judgement call: an unspecified contract SHOULD read as
+            # no_especificado. confirmatorias is the legal default but a confident
+            # 'confirmatorias' here would mean the prompt over-applies the default.
+            "tipo == no_especificado": lambda a: a.tipo_arras is TipoArras.no_especificado,
+            "plazo_dias == 60": lambda a: a.fechas.plazo_dias == 60,
+        },
+    ),
+]
+
+
+def _run_case(case: Case) -> bool:
+    print(f"\n{'=' * 70}\n{case.label}  ({case.fixture})\n{'=' * 70}")
+    analisis = analyze_pdf(FIXTURES_DIR / case.fixture)
+
+    print(
+        f"  -> tipo_arras       : {analisis.tipo_arras.value} "
+        f"(confianza {analisis.confianza_tipo:.0%})"
+    )
+    print(f"  -> financiacion      : {analisis.tiene_clausula_financiacion}")
+    print(
+        f"  -> precio/arras      : {analisis.importes.precio_total} / "
+        f"{analisis.importes.importe_arras}"
+    )
+    print(f"  -> partes            : {len(analisis.partes)}")
+    print(f"  -> refs CC           : {[r.articulo for r in analisis.referencias_codigo_civil]}")
+    print(f"  -> ref catastral     : {analisis.inmueble.referencia_catastral}")
+    print(
+        f"  -> plazo/limite      : {analisis.fechas.plazo_dias} / "
+        f"{analisis.fechas.fecha_limite_escritura}"
+    )
+    print(f"  -> justificacion     : {analisis.justificacion_tipo[:200]}")
+
+    def report(title: str, checks: dict[str, Check]) -> list[bool]:
+        results = []
+        for name, check in checks.items():
+            try:
+                ok = check(analisis)
+            except Exception:  # noqa: BLE001 - a check that errors counts as failing
+                ok = False
+            results.append(ok)
+            print(f"    {'PASS' if ok else 'FAIL'}  [{title}] {name}")
+        return results
+
+    hard_results = report("hard", case.hard)
+    report("soft", case.soft)
+    return all(hard_results)
+
+
+def main() -> int:
+    results: dict[str, bool] = {c.label: _run_case(c) for c in CASES}
+    print(f"\n{'=' * 70}\nSUMMARY (hard checks)\n{'=' * 70}")
+    for label, ok in results.items():
+        print(f"  {'PASS' if ok else 'FAIL'}  {label}")
+    passed = sum(results.values())
+    print(f"\n{passed}/{len(results)} cases passed their hard checks.")
+    return 0 if passed == len(results) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
