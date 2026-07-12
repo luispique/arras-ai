@@ -83,9 +83,11 @@ def test_analizar_texto_builds_informe(
     analisis = fake_analisis.model_copy(update={"tiene_clausula_financiacion": False})
     _stub_extract(monkeypatch, analisis)
     monkeypatch.setattr(agent, "detectar_riesgos_llm", lambda *a, **k: [])
+    # retrieval is stubbed so no index/model is needed
+    monkeypatch.setattr(KnowledgeBase, "retrieve", lambda self, q, k=4: [])
 
     informe = agent.analizar_texto(
-        "texto", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace()))
+        "texto", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace())), kb=_load_kb()
     )
     assert isinstance(informe, InformeArras)
     assert any(r.categoria is CategoriaRiesgo.falta_financiacion for r in informe.riesgos)
@@ -102,9 +104,11 @@ def test_analizar_texto_degrades_when_llm_fails(
         raise RuntimeError("network down")
 
     monkeypatch.setattr(agent, "detectar_riesgos_llm", _boom)
+    # retrieval is stubbed so no index/model is needed
+    monkeypatch.setattr(KnowledgeBase, "retrieve", lambda self, q, k=4: [])
 
     informe = agent.analizar_texto(
-        "texto", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace()))
+        "texto", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace())), kb=_load_kb()
     )
     # still produced from rule risks
     assert any(r.fuente == "regla" for r in informe.riesgos)
@@ -158,3 +162,37 @@ def test_detectar_riesgos_llm_maps_patron_ids_to_fundamentos(fake_analisis: Anal
     # A finding that names NO patron_ids gets NO citation, even though a pattern was
     # retrieved — we never fabricate a citation by association.
     assert riesgos[1].referencias == []
+
+
+def test_analizar_texto_attaches_rule_citations(
+    monkeypatch: pytest.MonkeyPatch, fake_analisis: AnalisisArras
+) -> None:
+    from pathlib import Path
+
+    from arras_ai.models import CategoriaRiesgo, NivelRiesgo
+    from arras_ai.rag.knowledge_base import KnowledgeBase
+
+    data_dir = Path(__file__).resolve().parent.parent / "data" / "kb"
+    kb = KnowledgeBase.from_data_dir(data_dir, index_dir=Path("/tmp/unused"))
+
+    analisis = fake_analisis.model_copy(update={"tiene_clausula_financiacion": False})
+    monkeypatch.setattr(agent, "analyze_text", lambda *a, **k: analisis)
+    monkeypatch.setattr(agent, "detectar_riesgos_llm", lambda *a, **k: [])
+    # retrieval is stubbed so no index/model is needed
+    monkeypatch.setattr(KnowledgeBase, "retrieve", lambda self, q, k=4: [])
+
+    informe = agent.analizar_texto(
+        "texto", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace())), kb=kb
+    )
+    fin = next(r for r in informe.riesgos if r.categoria is CategoriaRiesgo.falta_financiacion)
+    assert fin.referencias and fin.referencias[0].tipo == "doctrina"
+    assert informe.nivel_riesgo_global is NivelRiesgo.alto
+
+
+def test_construir_query_uses_facts_not_raw_text(fake_analisis: AnalisisArras) -> None:
+    analisis = fake_analisis.model_copy(update={"tiene_clausula_financiacion": False})
+    q = agent.construir_query_recuperacion(analisis)
+    assert analisis.tipo_arras.value in q
+    assert "financiación" in q.lower()  # the detected absence is in the query
+    assert "INICIO DEL CONTRATO" not in q  # NOT a raw contract-text dump
+    assert len(q) < 1000  # focused, within the embedder's token budget

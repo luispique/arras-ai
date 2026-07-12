@@ -11,8 +11,11 @@ from typing import cast
 
 from arras_ai.config import Settings
 
-DEFAULT_LOCAL_MODEL = "intfloat/multilingual-e5-small"
-_E5_DIM = 384
+# NOTE: the installed fastembed version only ships the "large" multilingual e5
+# checkpoint ("small" is not in `TextEmbedding.list_supported_models()`), so we
+# default to it here. Its embedding dimension is 1024, not the 384 of "small".
+DEFAULT_LOCAL_MODEL = "intfloat/multilingual-e5-large"
+_E5_DIM = 1024
 
 
 class EmbeddingModel(ABC):
@@ -23,7 +26,7 @@ class EmbeddingModel(ABC):
     @property
     @abstractmethod
     def model_id(self) -> str:
-        """Stable identity (e.g. 'local:intfloat/multilingual-e5-small') stored in
+        """Stable identity (e.g. 'local:intfloat/multilingual-e5-large') stored in
         the index metadata to detect a provider/model change on load."""
 
     @abstractmethod

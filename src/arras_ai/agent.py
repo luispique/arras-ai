@@ -22,7 +22,7 @@ from arras_ai.models import AnalisisArras, InformeArras, Riesgo, RiesgosDetectad
 from arras_ai.pdf import extract_text
 from arras_ai.prompts import SYSTEM_PROMPT_RIESGOS, build_user_message_riesgos
 from arras_ai.rag.knowledge_base import KnowledgeBase, PatronHit
-from arras_ai.riesgos import componer_informe, detectar_por_reglas
+from arras_ai.riesgos import citar, componer_informe, detectar_por_reglas
 
 logger = logging.getLogger("arras_ai.agent")
 
@@ -88,9 +88,30 @@ class EstadoAnalisis(BaseModel):
 
     texto_contrato: str
     analisis: AnalisisArras | None = None
+    patrones_recuperados: list[PatronHit] = Field(default_factory=list)
     riesgos_regla: list[Riesgo] = Field(default_factory=list)
     riesgos_llm: list[Riesgo] = Field(default_factory=list)
     informe: InformeArras | None = None
+
+
+def construir_query_recuperacion(analisis: AnalisisArras) -> str:
+    """Build a focused retrieval query from EXTRACTED FACTS — never the raw PDF text.
+
+    Embedding the whole contract dilutes the signal (the problem is ~10% of the text,
+    lost in boilerplate) and exceeds the embedder's ~512-token limit. We synthesize
+    the type, the detected absences, and captured fragments instead.
+    """
+    partes = [f"Contrato de arras {analisis.tipo_arras.value}."]
+    if not analisis.tiene_clausula_financiacion:
+        partes.append("No consta cláusula suspensiva de financiación.")
+    if analisis.fechas.fecha_limite_escritura is None and analisis.fechas.plazo_dias is None:
+        partes.append("No se fija fecha límite ni plazo para la escritura.")
+    if analisis.inmueble.referencia_catastral is None:
+        partes.append("Falta la referencia catastral del inmueble.")
+    if analisis.inmueble.cargas is None:
+        partes.append("No se mencionan cargas registrales.")
+    partes.append(analisis.justificacion_tipo)
+    return " ".join(p for p in partes if p)
 
 
 def _nodo_extraer(
@@ -100,16 +121,32 @@ def _nodo_extraer(
     return {"analisis": analisis}
 
 
+def _nodo_recuperar(estado: EstadoAnalisis, *, kb: KnowledgeBase) -> dict[str, Any]:
+    assert estado.analisis is not None  # extraer ran first
+    query = construir_query_recuperacion(estado.analisis)
+    try:
+        patrones = kb.retrieve(query, k=4)
+    except Exception:
+        logger.warning("pattern retrieval failed; continuing without patterns", exc_info=True)
+        patrones = []
+    return {"patrones_recuperados": patrones}
+
+
 def _nodo_detectar(
     estado: EstadoAnalisis, *, client: anthropic.Anthropic, model: str, kb: KnowledgeBase
 ) -> dict[str, Any]:
     assert estado.analisis is not None  # extraer ran first
     riesgos_regla = detectar_por_reglas(estado.analisis)
+    for r in riesgos_regla:
+        r.referencias = citar(r.categoria, kb.articulos, kb.patrones)
     try:
-        # No patterns are retrieved yet (retrieval wiring lands in a later task) —
-        # the risk pass is grounded, but nothing has been recuperado to ground it in.
         riesgos_llm = detectar_riesgos_llm(
-            estado.texto_contrato, estado.analisis, [], client=client, kb=kb, model=model
+            estado.texto_contrato,
+            estado.analisis,
+            estado.patrones_recuperados,
+            client=client,
+            kb=kb,
+            model=model,
         )
     except Exception:
         logger.warning("risk LLM pass failed; using rule-based risks only", exc_info=True)
@@ -124,29 +161,18 @@ def _nodo_componer(estado: EstadoAnalisis) -> dict[str, Any]:
 
 
 def build_graph(client: anthropic.Anthropic, model: str, kb: KnowledgeBase) -> Any:
-    """Compile the extraction -> risk-detection -> report graph."""
+    """Compile the extraction -> retrieval -> risk-detection -> report graph."""
     builder = StateGraph(EstadoAnalisis)
     builder.add_node("extraer", partial(_nodo_extraer, client=client, model=model))
+    builder.add_node("recuperar_contexto", partial(_nodo_recuperar, kb=kb))
     builder.add_node("detectar_riesgos", partial(_nodo_detectar, client=client, model=model, kb=kb))
     builder.add_node("componer_informe", partial(_nodo_componer))
     builder.add_edge(START, "extraer")
-    builder.add_edge("extraer", "detectar_riesgos")
+    builder.add_edge("extraer", "recuperar_contexto")
+    builder.add_edge("recuperar_contexto", "detectar_riesgos")
     builder.add_edge("detectar_riesgos", "componer_informe")
     builder.add_edge("componer_informe", END)
     return builder.compile()
-
-
-_DEFAULT_KB_DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "kb"
-
-
-def _default_kb() -> KnowledgeBase:
-    """A lightweight KB (pattern/article lookups only, no embeddings/vector store).
-
-    Retrieval is not wired into the graph yet, so a full `KnowledgeBase.build` (which
-    needs an embedding model) would be wasted work here.
-    """
-    settings = load_settings()
-    return KnowledgeBase.from_data_dir(_DEFAULT_KB_DATA_DIR, index_dir=Path(settings.kb_index_dir))
 
 
 def analizar_texto(
@@ -159,10 +185,11 @@ def analizar_texto(
     """Analyze already-extracted contract text end to end."""
     if not texto.strip():
         raise AnalysisError("Empty contract text.")
+    settings = load_settings()
     if client is None:
-        client = _build_client(load_settings().anthropic_api_key)
+        client = _build_client(settings.anthropic_api_key)
     if kb is None:
-        kb = _default_kb()
+        kb = KnowledgeBase.build(settings)
     graph = build_graph(client, model, kb)
     final = graph.invoke(EstadoAnalisis(texto_contrato=texto))
     estado = EstadoAnalisis.model_validate(final)
