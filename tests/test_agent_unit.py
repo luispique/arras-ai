@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -19,6 +20,13 @@ from arras_ai.models import (
     RiesgosDetectadosLLM,
     Severidad,
 )
+from arras_ai.rag.knowledge_base import KnowledgeBase
+
+_KB_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "kb"
+
+
+def _load_kb() -> KnowledgeBase:
+    return KnowledgeBase.from_data_dir(_KB_DATA_DIR, index_dir=Path("/tmp/unused"))
 
 
 class _FakeMessages:
@@ -49,7 +57,7 @@ def test_detectar_riesgos_llm_marks_fuente_llm(fake_analisis: AnalisisArras) -> 
     )
     client = _FakeClient(SimpleNamespace(parsed_output=parsed, stop_reason="end_turn"))
     riesgos = agent.detectar_riesgos_llm(
-        "texto", fake_analisis, client=cast(anthropic.Anthropic, client)
+        "texto", fake_analisis, [], client=cast(anthropic.Anthropic, client), kb=_load_kb()
     )
     assert len(riesgos) == 1
     assert riesgos[0].fuente == "llm"
@@ -59,7 +67,7 @@ def test_detectar_riesgos_llm_marks_fuente_llm(fake_analisis: AnalisisArras) -> 
 def test_detectar_riesgos_llm_returns_empty_when_unparsed(fake_analisis: AnalisisArras) -> None:
     client = _FakeClient(SimpleNamespace(parsed_output=None, stop_reason="max_tokens"))
     riesgos = agent.detectar_riesgos_llm(
-        "texto", fake_analisis, client=cast(anthropic.Anthropic, client)
+        "texto", fake_analisis, [], client=cast(anthropic.Anthropic, client), kb=_load_kb()
     )
     assert riesgos == []
 
@@ -108,3 +116,45 @@ def test_analizar_texto_rejects_empty() -> None:
         agent.analizar_texto(
             "   ", client=cast(anthropic.Anthropic, _FakeClient(SimpleNamespace()))
         )
+
+
+def test_detectar_riesgos_llm_maps_patron_ids_to_fundamentos(fake_analisis: AnalisisArras) -> None:
+    from pathlib import Path
+
+    from arras_ai.models import RiesgoLLM, RiesgosDetectadosLLM
+    from arras_ai.rag.knowledge_base import KnowledgeBase, PatronHit
+
+    data_dir = Path(__file__).resolve().parent.parent / "data" / "kb"
+    kb = KnowledgeBase.from_data_dir(data_dir, index_dir=Path("/tmp/unused"))
+    parsed = RiesgosDetectadosLLM(
+        riesgos=[
+            RiesgoLLM(
+                categoria=CategoriaRiesgo.reparto_gastos_ambiguo,
+                severidad=Severidad.baja,
+                descripcion="d",
+                recomendacion="r",
+                patron_ids=["gastos", "ghost"],
+            ),
+            RiesgoLLM(
+                categoria=CategoriaRiesgo.otro,
+                severidad=Severidad.baja,
+                descripcion="sin cita",
+                recomendacion="r",
+                patron_ids=[],
+            ),
+        ]
+    )
+    client = _FakeClient(SimpleNamespace(parsed_output=parsed, stop_reason="end_turn"))
+    gastos = kb.get_patron("gastos")
+    assert gastos is not None
+    patrones = [PatronHit(patron=gastos, score=0.9)]
+    riesgos = agent.detectar_riesgos_llm(
+        "texto", fake_analisis, patrones, client=cast(anthropic.Anthropic, client), kb=kb
+    )
+    assert riesgos[0].fuente == "llm"
+    refs = riesgos[0].referencias
+    assert [f.referencia for f in refs] == [gastos.como_fundamento().referencia]
+    # 'ghost' (unknown id) dropped.
+    # A finding that names NO patron_ids gets NO citation, even though a pattern was
+    # retrieved — we never fabricate a citation by association.
+    assert riesgos[1].referencias == []
