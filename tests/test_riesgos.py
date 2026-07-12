@@ -70,8 +70,13 @@ def test_missing_cadastral_reference_detected() -> None:
 
 def test_nivel_global_takes_max_severity() -> None:
     def r(sev: Severidad) -> Riesgo:
-        return Riesgo(categoria=CategoriaRiesgo.otro, severidad=sev,
-                      descripcion="d", recomendacion="r", fuente="regla")
+        return Riesgo(
+            categoria=CategoriaRiesgo.otro,
+            severidad=sev,
+            descripcion="d",
+            recomendacion="r",
+            fuente="regla",
+        )
 
     assert nivel_global([]) is NivelRiesgo.bajo
     assert nivel_global([r(Severidad.baja), r(Severidad.media)]) is NivelRiesgo.medio
@@ -82,12 +87,27 @@ def test_componer_dedups_rule_categories_but_keeps_otro() -> None:
     analisis = _analisis(tiene_clausula_financiacion=False)
     reglas = detectar_por_reglas(analisis)  # includes falta_financiacion (regla)
     llm = [
-        Riesgo(categoria=CategoriaRiesgo.falta_financiacion, severidad=Severidad.media,
-               descripcion="dup", recomendacion="r", fuente="llm"),
-        Riesgo(categoria=CategoriaRiesgo.otro, severidad=Severidad.baja,
-               descripcion="extra1", recomendacion="r", fuente="llm"),
-        Riesgo(categoria=CategoriaRiesgo.otro, severidad=Severidad.baja,
-               descripcion="extra2", recomendacion="r", fuente="llm"),
+        Riesgo(
+            categoria=CategoriaRiesgo.falta_financiacion,
+            severidad=Severidad.media,
+            descripcion="dup",
+            recomendacion="r",
+            fuente="llm",
+        ),
+        Riesgo(
+            categoria=CategoriaRiesgo.otro,
+            severidad=Severidad.baja,
+            descripcion="extra1",
+            recomendacion="r",
+            fuente="llm",
+        ),
+        Riesgo(
+            categoria=CategoriaRiesgo.otro,
+            severidad=Severidad.baja,
+            descripcion="extra2",
+            recomendacion="r",
+            fuente="llm",
+        ),
     ]
     informe = componer_informe(analisis, reglas, llm)
     # the LLM's duplicate falta_financiacion is dropped (rule wins)...
@@ -97,3 +117,8 @@ def test_componer_dedups_rule_categories_but_keeps_otro() -> None:
     otros = [r for r in informe.riesgos if r.categoria is CategoriaRiesgo.otro]
     assert len(otros) == 2
     assert informe.nivel_riesgo_global is NivelRiesgo.alto
+
+
+def test_confidence_at_threshold_is_not_flagged() -> None:
+    riesgos = detectar_por_reglas(_analisis(confianza_tipo=0.6))
+    assert CategoriaRiesgo.tipo_ambiguo not in _cats(riesgos)

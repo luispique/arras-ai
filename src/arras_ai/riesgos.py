@@ -122,7 +122,11 @@ def componer_informe(
 ) -> InformeArras:
     """Merge rule + LLM risks, deduping only rule categories a rule already covered."""
     categorias_cubiertas = {r.categoria for r in riesgos_regla}
-    llm_filtrados = [r for r in riesgos_llm if r.categoria not in categorias_cubiertas]
+    llm_filtrados = [
+        r
+        for r in riesgos_llm
+        if r.categoria is CategoriaRiesgo.otro or r.categoria not in categorias_cubiertas
+    ]
     riesgos = [*riesgos_regla, *llm_filtrados]
     return InformeArras(
         analisis=analisis,
