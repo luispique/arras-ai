@@ -118,6 +118,8 @@ Add `--json` for machine-readable output you can pipe into anything:
 $ arras analyze piso_valencia.pdf --json
 ```
 
+Note: since Sprint 2 the `--json` payload is wrapped in `{analisis, riesgos, nivel_riesgo_global}` (Sprint 1 emitted a flat `AnalisisArras`).
+
 ```json
 {
   "analisis": {
@@ -203,8 +205,8 @@ Spanish-domain prompt strategy.
 
 ## Roadmap
 
-Sprint 1 (this) is the foundation. The module boundaries are drawn so each of the
-following slots in without a rewrite:
+Sprint 1 was the foundation; Sprint 2 added the agent and risk detection. The module
+boundaries are drawn so each of the following slots in without a rewrite:
 
 - [x] **Sprint 1 — Foundation.** CLI, robust PDF parsing, structured extraction
       with Claude, typed schema, tests, fixtures.

@@ -25,7 +25,7 @@ from arras_ai.riesgos import componer_informe, detectar_por_reglas
 
 logger = logging.getLogger("arras_ai.agent")
 
-RIESGOS_MAX_TOKENS = 4000
+RIESGOS_MAX_TOKENS = 8000
 
 
 def detectar_riesgos_llm(
@@ -49,6 +49,9 @@ def detectar_riesgos_llm(
     )
     parsed = response.parsed_output
     if parsed is None:
+        logger.warning(
+            "risk LLM pass returned no parseable output (stop_reason=%s)", response.stop_reason
+        )
         return []
     return [Riesgo(**base.model_dump(), fuente="llm") for base in parsed.riesgos]
 
