@@ -157,6 +157,43 @@ separate types, so Sprint 1 consumers of `AnalisisArras` are unaffected. If the
 LLM risk pass fails (timeout, bad output), the node catches it and the report is
 still produced from the deterministic rule risks alone — degraded, not broken.
 
+## Sprint 3: the RAG knowledge base and citations
+
+Sprint 3 adds a legal knowledge base with **two deliberately different retrieval
+paths**, because the two kinds of content have different correctness needs.
+
+**Código Civil articles** (`data/kb/codigo_civil.yaml`, official BOE text) are a
+small, fixed set — a handful of articles decide the whole domain. They are loaded
+into memory and resolved by **deterministic exact lookup** (`get_articulo`,
+`citar()` in `riesgos.py`), mapping a risk category to an article id directly.
+This is *not* RAG: for a fixed, known statute, similarity search only adds a
+chance of citing the wrong article, which is unacceptable in a legal tool. RAG
+earns its keep only for the second path.
+
+**Problematic-clause patterns and doctrine** (`data/kb/patrones.yaml`, authored,
+not statute) are embedded and indexed in **LanceDB** (embedded, file-based), and
+retrieved by semantic similarity (`KnowledgeBase.retrieve`). Embeddings sit
+behind an `EmbeddingModel` interface — local `fastembed` (ONNX, no API key,
+offline) is the default; `openai` and `voyage` adapters lazy-import their SDKs
+so they stay optional extras, not hard dependencies. `VectorStore` is likewise
+an interface, with `LanceDBStore` the only implementation today. Provider is
+selected via `ARRAS_EMBEDDING_PROVIDER`. The index records the embedding model
+id and dimension in `meta.json`; loading it with a different model raises
+immediately instead of silently returning garbage matches.
+
+A new `recuperar_contexto` node sits between `extraer` and `detectar_riesgos`
+(`extraer → recuperar_contexto → detectar_riesgos → componer_informe`). Its query
+is built from the *extracted facts* (type, detected absences, the model's own
+justification) — never the raw contract text, which dilutes the signal and
+exceeds the embedder's token limit.
+
+Every `Riesgo` now carries `referencias: list[Fundamento]`, where `Fundamento`
+(`tipo: codigo_civil|doctrina|jurisprudencia`) is a legal-*nature* taxonomy —
+distinct from `Riesgo.fuente` (who found it: rule vs. LLM) and from Sprint 1's
+`ReferenciaCodigoCivil` (citations the *contract itself* makes). Rule risks are
+cited deterministically; LLM risks cite only the patterns the model explicitly
+named, never an unrelated top-k match. `jurisprudencia` is reserved, unpopulated.
+
 ## Testing strategy
 
 - **Unit tests** (offline, default `pytest` run): schema validation, PDF
