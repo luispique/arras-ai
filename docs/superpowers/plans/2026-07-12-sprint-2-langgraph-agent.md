@@ -272,6 +272,7 @@ import pytest
 from arras_ai.models import (
     AnalisisArras,
     CategoriaRiesgo,
+    Fechas,
     Importes,
     Inmueble,
     NivelRiesgo,
@@ -290,9 +291,7 @@ def _analisis(**overrides: object) -> AnalisisArras:
         partes=[],
         inmueble=Inmueble(referencia_catastral="9872023VH5797S0001WX", cargas="libre de cargas"),
         importes=Importes(),
-        fechas=__import__("arras_ai.models", fromlist=["Fechas"]).Fechas(
-            fecha_limite_escritura="2025-06-15"
-        ),
+        fechas=Fechas(fecha_limite_escritura="2025-06-15"),
         referencias_codigo_civil=[],
         tiene_clausula_financiacion=True,
         resumen="ok",
@@ -327,8 +326,6 @@ def test_missing_financing_clause_detected() -> None:
 
 
 def test_missing_dates_detected() -> None:
-    from arras_ai.models import Fechas
-
     riesgos = detectar_por_reglas(_analisis(fechas=Fechas()))
     assert CategoriaRiesgo.fechas_mal_definidas in _cats(riesgos)
 
