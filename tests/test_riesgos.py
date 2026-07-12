@@ -122,3 +122,26 @@ def test_componer_dedups_rule_categories_but_keeps_otro() -> None:
 def test_confidence_at_threshold_is_not_flagged() -> None:
     riesgos = detectar_por_reglas(_analisis(confianza_tipo=0.6))
     assert CategoriaRiesgo.tipo_ambiguo not in _cats(riesgos)
+
+
+def test_citar_maps_category_to_fundamentos() -> None:
+    from pathlib import Path
+
+    from arras_ai.rag.knowledge_base import KnowledgeBase
+    from arras_ai.riesgos import citar
+
+    data_dir = Path(__file__).resolve().parent.parent / "data" / "kb"
+    kb = KnowledgeBase.from_data_dir(data_dir, index_dir=Path("/tmp/unused"))
+
+    cc_fund = citar(CategoriaRiesgo.tipo_ambiguo, kb.articulos, kb.patrones)
+    assert any(f.tipo == "codigo_civil" and f.referencia == "art. 1454 CC" for f in cc_fund)
+
+    fin_fund = citar(CategoriaRiesgo.falta_financiacion, kb.articulos, kb.patrones)
+    assert fin_fund and all(f.tipo == "doctrina" for f in fin_fund)
+
+
+def test_citar_unknown_key_is_skipped() -> None:
+    from arras_ai.riesgos import citar
+
+    # Empty dicts: keys resolve to nothing, no crash, empty list.
+    assert citar(CategoriaRiesgo.tipo_ambiguo, {}, {}) == []
