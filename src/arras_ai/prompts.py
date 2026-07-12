@@ -13,6 +13,8 @@ Language strategy (hybrid, argued in ARCHITECTURE.md):
 
 from __future__ import annotations
 
+from arras_ai.models import AnalisisArras
+
 SYSTEM_PROMPT = """\
 You are a meticulous assistant that extracts structured information from Spanish \
 real-estate earnest-money contracts ("contratos de arras"). You are NOT a lawyer and \
@@ -72,3 +74,44 @@ pequeños errores de formato.
 def build_user_message(contract_text: str) -> str:
     """Build the user-turn content for a given extracted contract text."""
     return USER_INSTRUCTION.format(contract_text=contract_text.strip())
+
+
+SYSTEM_PROMPT_RIESGOS = """\
+You review a Spanish earnest-money contract (contrato de arras) for problems that put the \
+buyer or seller at risk. You are NOT a lawyer and do not give legal advice; you flag issues \
+a person should check with a professional.
+
+You are given the contract text and a structured extraction of it. Return ADDITIONAL risks \
+that require reading the prose — especially an ambiguous or missing split of costs \
+(reparto de gastos → categoria 'reparto_gastos_ambiguo'). Other genuine problems that do not \
+fit a category go under 'otro'.
+
+Do NOT repeat these, which are already handled by deterministic rules: the arras type being \
+unspecified/ambiguous, a missing financing-contingency clause, missing deadline/plazo, or a \
+missing cadastral reference. Only add something in those categories if you found a DIFFERENT, \
+additional problem.
+
+For each risk set: `severidad` (alta/media/baja by financial impact), a `descripcion` quoting \
+the relevant contract wording, and a concrete `recomendacion`. If you find no additional \
+risks, return an empty list. All text MUST be in Spanish.
+"""
+
+USER_INSTRUCTION_RIESGOS = """\
+Texto del contrato:
+--- INICIO ---
+{contract_text}
+--- FIN ---
+
+Extracción estructurada (JSON):
+{analisis_json}
+
+Devuelve los riesgos ADICIONALES detectados.
+"""
+
+
+def build_user_message_riesgos(texto: str, analisis: AnalisisArras) -> str:
+    """Build the user-turn content for the risk-detection pass."""
+    return USER_INSTRUCTION_RIESGOS.format(
+        contract_text=texto.strip(),
+        analisis_json=analisis.model_dump_json(indent=2),
+    )
