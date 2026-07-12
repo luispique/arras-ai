@@ -20,6 +20,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         protected_namespaces=(),
+        populate_by_name=True,
     )
 
     anthropic_api_key: str | None = Field(
@@ -30,6 +31,10 @@ class Settings(BaseSettings):
         default=DEFAULT_MODEL,
         validation_alias=AliasChoices("ARRAS_MODEL", "MODEL"),
     )
+    embedding_provider: str = Field(default="local", validation_alias="ARRAS_EMBEDDING_PROVIDER")
+    openai_api_key: str | None = Field(default=None, validation_alias="OPENAI_API_KEY")
+    voyage_api_key: str | None = Field(default=None, validation_alias="VOYAGE_API_KEY")
+    kb_index_dir: str = Field(default=".arras_kb_index", validation_alias="ARRAS_KB_INDEX_DIR")
 
 
 def load_settings() -> Settings:

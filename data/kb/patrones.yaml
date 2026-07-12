@@ -1,0 +1,46 @@
+- id: "financiacion"
+  titulo: "Falta de condición suspensiva de financiación"
+  categoria: "falta_financiacion"
+  tipo: "doctrina"
+  referencia: "Cláusula suspensiva de financiación (buena práctica)"
+  texto: >-
+    Sin una condición suspensiva de financiación, si la entidad bancaria deniega la
+    hipoteca el comprador incumple y puede perder la señal entregada. La cláusula debe
+    fijar importe mínimo de préstamo y plazo para resolver el contrato con devolución
+    de las arras.
+- id: "tipo_ambiguo"
+  titulo: "Modalidad de arras no especificada"
+  categoria: "tipo_ambiguo"
+  tipo: "doctrina"
+  referencia: "Interpretación por defecto: confirmatorias"
+  texto: >-
+    Cuando el contrato no indica expresamente la modalidad, los tribunales interpretan
+    las arras como confirmatorias (las más vinculantes), no penitenciales. Conviene
+    indicar el tipo y citar el artículo del Código Civil aplicable.
+- id: "fechas"
+  titulo: "Plazo de escritura mal definido"
+  categoria: "fechas_mal_definidas"
+  tipo: "doctrina"
+  referencia: "Determinación del plazo (buena práctica)"
+  texto: >-
+    La falta de fecha límite o plazo cierto para otorgar la escritura genera
+    inseguridad sobre el cumplimiento y dificulta reclamar la resolución. Debe fijarse
+    fecha concreta o plazo en días desde la firma.
+- id: "inmueble"
+  titulo: "Inmueble insuficientemente identificado o con cargas no declaradas"
+  categoria: "inmueble_mal_identificado"
+  tipo: "doctrina"
+  referencia: "Identificación registral y cargas (buena práctica)"
+  texto: >-
+    La ausencia de referencia catastral o de mención al estado de cargas expone al
+    comprador a adquirir con gravámenes ocultos. Debe incorporarse la referencia
+    catastral y una nota simple registral actualizada.
+- id: "gastos"
+  titulo: "Reparto de gastos ambiguo"
+  categoria: "reparto_gastos_ambiguo"
+  tipo: "doctrina"
+  referencia: "Distribución de gastos e impuestos (buena práctica)"
+  texto: >-
+    Un reparto de gastos e impuestos ambiguo o remitido genéricamente a la ley puede
+    generar disputas. Conviene detallar qué gastos (notaría, registro, IIVTNU, etc.)
+    asume cada parte.

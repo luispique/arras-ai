@@ -81,6 +81,7 @@ CASES = [
             "sin fecha límite (plazo vago)": (
                 lambda i: i.analisis.fechas.fecha_limite_escritura is None
             ),
+            "algún riesgo con cita legal": lambda i: any(r.referencias for r in i.riesgos),
         },
     ),
     Case(
@@ -131,6 +132,10 @@ def _run_case(case: Case) -> bool:
     print(
         f"  -> riesgos            : "
         f"{[(r.categoria.value, r.severidad.value) for r in informe.riesgos]}"
+    )
+    print(
+        f"  -> citas             : "
+        f"{[(r.categoria.value, [f.referencia for f in r.referencias]) for r in informe.riesgos]}"
     )
 
     def report(title: str, checks: dict[str, Check]) -> list[bool]:

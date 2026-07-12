@@ -179,8 +179,20 @@ class NivelRiesgo(StrEnum):
     bajo = "bajo"
 
 
+class Fundamento(BaseModel):
+    """Fundamento jurídico que respalda un riesgo (cita verificable)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tipo: Literal["codigo_civil", "doctrina", "jurisprudencia"] = Field(
+        description="Naturaleza de la fuente citada"
+    )
+    referencia: str = Field(description='Cita, p. ej. "art. 1454 CC"')
+    texto: str = Field(description="Fragmento de la fuente, para poder verificarla")
+
+
 class RiesgoBase(BaseModel):
-    """Un riesgo detectado en el contrato (sin marca de procedencia)."""
+    """Un riesgo detectado en el contrato (sin procedencia ni fundamento)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -192,11 +204,23 @@ class RiesgoBase(BaseModel):
     recomendacion: str = Field(description="Qué debería hacer o preguntar el usuario, en español")
 
 
+class RiesgoLLM(RiesgoBase):
+    """Riesgo tal como lo devuelve el pase LLM (con los patrones que lo sustentan)."""
+
+    patron_ids: list[str] = Field(
+        default_factory=list,
+        description="Ids de los patrones recuperados que sustentan este riesgo, si los hay",
+    )
+
+
 class Riesgo(RiesgoBase):
-    """Un riesgo con su procedencia (regla determinista o pase LLM)."""
+    """Un riesgo con su procedencia y sus fundamentos jurídicos."""
 
     fuente: Literal["regla", "llm"] = Field(
         description="Origen del hallazgo: 'regla' (detector determinista) o 'llm'"
+    )
+    referencias: list[Fundamento] = Field(
+        default_factory=list, description="Fundamentos jurídicos que respaldan el riesgo"
     )
 
 
@@ -205,7 +229,7 @@ class RiesgosDetectadosLLM(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    riesgos: list[RiesgoBase] = Field(
+    riesgos: list[RiesgoLLM] = Field(
         default_factory=list, description="Riesgos adicionales detectados en el texto"
     )
 

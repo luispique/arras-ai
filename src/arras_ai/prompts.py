@@ -13,7 +13,12 @@ Language strategy (hybrid, argued in ARCHITECTURE.md):
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from arras_ai.models import AnalisisArras
+
+if TYPE_CHECKING:
+    from arras_ai.rag.knowledge_base import PatronHit
 
 SYSTEM_PROMPT = """\
 You are a meticulous assistant that extracts structured information from Spanish \
@@ -113,6 +118,10 @@ relying on the statutory default where an explicit clause would be clearer).
 For each risk set `severidad` per this rubric, a `descripcion` quoting the relevant contract \
 wording, and a concrete `recomendacion`. If you find no additional risks, return an empty \
 list. All text MUST be in Spanish.
+
+You are also given a list of retrieved reference patterns, each with an `id`. When a \
+finding is supported by one of them, list that pattern's `id` in the finding's \
+`patron_ids`. Do not invent ids; use only ids from the provided list.
 """
 
 USER_INSTRUCTION_RIESGOS = """\
@@ -124,13 +133,26 @@ Texto del contrato:
 Extracción estructurada (JSON):
 {analisis_json}
 
+Patrones de referencia recuperados:
+{patrones}
+
 Devuelve los riesgos ADICIONALES detectados.
 """
 
 
-def build_user_message_riesgos(texto: str, analisis: AnalisisArras) -> str:
+def build_user_message_riesgos(
+    texto: str, analisis: AnalisisArras, patrones: list[PatronHit]
+) -> str:
     """Build the user-turn content for the risk-detection pass."""
+    bloques = (
+        "\n".join(
+            f"- id: {h.patron.id}\n  título: {h.patron.titulo}\n  texto: {h.patron.texto}"
+            for h in patrones
+        )
+        or "(sin patrones recuperados)"
+    )
     return USER_INSTRUCTION_RIESGOS.format(
         contract_text=texto.strip(),
         analisis_json=analisis.model_dump_json(indent=2),
+        patrones=bloques,
     )

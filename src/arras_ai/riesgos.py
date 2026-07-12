@@ -7,17 +7,52 @@ trivially unit-tested and reusable by the Sprint 4 eval harness.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from arras_ai.models import (
     AnalisisArras,
     CategoriaRiesgo,
+    Fundamento,
     InformeArras,
     NivelRiesgo,
     Riesgo,
     Severidad,
     TipoArras,
 )
+from arras_ai.rag.knowledge_base import Articulo, Patron
 
 UMBRAL_CONFIANZA_TIPO = 0.6
+
+CATEGORIA_REFERENCIAS: dict[
+    CategoriaRiesgo, list[tuple[Literal["codigo_civil", "patron"], str]]
+] = {
+    CategoriaRiesgo.tipo_ambiguo: [
+        ("codigo_civil", "1454"),
+        ("patron", "tipo_ambiguo"),
+    ],
+    CategoriaRiesgo.falta_financiacion: [("patron", "financiacion")],
+    CategoriaRiesgo.fechas_mal_definidas: [("patron", "fechas")],
+    CategoriaRiesgo.inmueble_mal_identificado: [("patron", "inmueble")],
+    CategoriaRiesgo.reparto_gastos_ambiguo: [("patron", "gastos")],
+}
+
+
+def citar(
+    categoria: CategoriaRiesgo,
+    articulos: dict[str, Articulo],
+    patrones: dict[str, Patron],
+) -> list[Fundamento]:
+    """Deterministically resolve a risk category to its legal fundamentos.
+
+    Pure lookup — no LLM, no vector retrieval. Unknown keys are skipped.
+    """
+    fundamentos: list[Fundamento] = []
+    for fuente, ref_id in CATEGORIA_REFERENCIAS.get(categoria, []):
+        if fuente == "codigo_civil" and (art := articulos.get(ref_id)) is not None:
+            fundamentos.append(art.como_fundamento())
+        elif fuente == "patron" and (pat := patrones.get(ref_id)) is not None:
+            fundamentos.append(pat.como_fundamento())
+    return fundamentos
 
 
 def detectar_por_reglas(analisis: AnalisisArras) -> list[Riesgo]:

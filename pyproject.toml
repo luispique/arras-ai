@@ -23,7 +23,14 @@ dependencies = [
     "typer>=0.12",
     "rich>=13.9",
     "langgraph>=0.2",
+    "fastembed>=0.4",
+    "lancedb>=0.13",
+    "pyyaml>=6.0",
 ]
+
+[project.optional-dependencies]
+openai = ["openai>=1.40"]
+voyage = ["voyageai>=0.2"]
 
 [project.urls]
 Homepage = "https://github.com/luispique/arras-ai"
@@ -71,7 +78,26 @@ strict = true
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["pdfplumber.*", "reportlab.*", "generate_fixtures"]
+module = [
+    "pdfplumber.*",
+    "reportlab.*",
+    "generate_fixtures",
+    "fastembed.*",
+    "lancedb.*",
+    "yaml",
+    "openai.*",
+    "voyageai.*",
+]
+ignore_missing_imports = true
+
+# numpy is only pulled in transitively (via langgraph's optional numpy support,
+# lancedb, and fastembed) and its stubs use PEP 695 syntax that requires
+# python_version >= 3.12 to parse, which conflicts with this project's 3.11
+# target. We never import numpy directly, so skip following into it.
+[[tool.mypy.overrides]]
+module = ["numpy", "numpy.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = true
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -80,3 +106,6 @@ markers = [
     "integration: end-to-end tests that call the real Claude API (need ANTHROPIC_API_KEY)",
 ]
 addopts = "-ra"
+filterwarnings = [
+    "ignore:The model intfloat/multilingual-e5-large now uses mean pooling:UserWarning",
+]
