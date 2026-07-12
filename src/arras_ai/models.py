@@ -9,6 +9,7 @@ output. See ARCHITECTURE.md for the language rationale.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -153,3 +154,67 @@ class AnalisisArras(BaseModel):
     resumen: str = Field(
         description="Resumen en español de 2-3 frases del contrato y sus puntos clave"
     )
+
+
+class CategoriaRiesgo(StrEnum):
+    """Categorías de riesgo/cláusula problemática detectables."""
+
+    tipo_ambiguo = "tipo_ambiguo"
+    falta_financiacion = "falta_financiacion"
+    fechas_mal_definidas = "fechas_mal_definidas"
+    inmueble_mal_identificado = "inmueble_mal_identificado"
+    reparto_gastos_ambiguo = "reparto_gastos_ambiguo"
+    otro = "otro"
+
+
+class Severidad(StrEnum):
+    alta = "alta"
+    media = "media"
+    baja = "baja"
+
+
+class NivelRiesgo(StrEnum):
+    alto = "alto"
+    medio = "medio"
+    bajo = "bajo"
+
+
+class RiesgoBase(BaseModel):
+    """Un riesgo detectado en el contrato (sin marca de procedencia)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    categoria: CategoriaRiesgo = Field(description="Categoría del riesgo detectado")
+    severidad: Severidad = Field(description="Gravedad del riesgo: alta, media o baja")
+    descripcion: str = Field(
+        description="Qué está mal, en español, citando la parte del contrato afectada"
+    )
+    recomendacion: str = Field(description="Qué debería hacer o preguntar el usuario, en español")
+
+
+class Riesgo(RiesgoBase):
+    """Un riesgo con su procedencia (regla determinista o pase LLM)."""
+
+    fuente: Literal["regla", "llm"] = Field(
+        description="Origen del hallazgo: 'regla' (detector determinista) o 'llm'"
+    )
+
+
+class RiesgosDetectadosLLM(BaseModel):
+    """Schema del pase LLM de detección de riesgos (structured output)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    riesgos: list[RiesgoBase] = Field(
+        default_factory=list, description="Riesgos adicionales detectados en el texto"
+    )
+
+
+class InformeArras(BaseModel):
+    """Informe completo: extracción + riesgos + nivel de riesgo global."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    analisis: AnalisisArras = Field(description="Extracción estructurada del contrato")
+    riesgos: list[Riesgo] = Field(default_factory=list, description="Riesgos detectados")
+    nivel_riesgo_global: NivelRiesgo = Field(description="Nivel de riesgo agregado del contrato")

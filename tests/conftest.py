@@ -13,12 +13,17 @@ import pytest
 
 from arras_ai.models import (
     AnalisisArras,
+    CategoriaRiesgo,
     Fechas,
     Importes,
+    InformeArras,
     Inmueble,
+    NivelRiesgo,
     Parte,
     ReferenciaCodigoCivil,
+    Riesgo,
     RolParte,
+    Severidad,
     TipoArras,
 )
 
@@ -78,4 +83,21 @@ def fake_analisis() -> AnalisisArras:
         ],
         tiene_clausula_financiacion=True,
         resumen="Contrato de arras penitenciales sobre vivienda en Madrid por 280.000 €.",
+    )
+
+
+@pytest.fixture
+def fake_informe(fake_analisis: AnalisisArras) -> InformeArras:
+    return InformeArras(
+        analisis=fake_analisis,
+        riesgos=[
+            Riesgo(
+                categoria=CategoriaRiesgo.falta_financiacion,
+                severidad=Severidad.alta,
+                descripcion="No consta cláusula suspensiva de financiación.",
+                recomendacion="Incluye una condición suspensiva de financiación.",
+                fuente="regla",
+            )
+        ],
+        nivel_riesgo_global=NivelRiesgo.alto,
     )

@@ -5,7 +5,19 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from arras_ai.models import AnalisisArras, Importes, Inmueble, TipoArras
+from arras_ai.models import (
+    AnalisisArras,
+    CategoriaRiesgo,
+    Importes,
+    InformeArras,
+    Inmueble,
+    NivelRiesgo,
+    Riesgo,
+    RiesgoBase,
+    RiesgosDetectadosLLM,
+    Severidad,
+    TipoArras,
+)
 
 
 def test_analisis_roundtrips_through_json(fake_analisis: AnalisisArras) -> None:
@@ -45,3 +57,35 @@ def test_optional_fields_default_to_none() -> None:
     inmueble = Inmueble()
     assert inmueble.direccion is None
     assert inmueble.referencia_catastral is None
+
+
+def test_riesgo_requires_fuente() -> None:
+    r = Riesgo(
+        categoria=CategoriaRiesgo.falta_financiacion,
+        severidad=Severidad.alta,
+        descripcion="d",
+        recomendacion="r",
+        fuente="regla",
+    )
+    assert r.fuente == "regla"
+    with pytest.raises(ValidationError):
+        Riesgo.model_validate(
+            {"categoria": "otro", "severidad": "baja", "descripcion": "d", "recomendacion": "r"}
+        )
+
+
+def test_riesgos_detectados_llm_has_no_fuente() -> None:
+    payload = {
+        "riesgos": [
+            {"categoria": "otro", "severidad": "baja", "descripcion": "d", "recomendacion": "r"}
+        ]
+    }
+    parsed = RiesgosDetectadosLLM.model_validate(payload)
+    assert isinstance(parsed.riesgos[0], RiesgoBase)
+    assert not hasattr(parsed.riesgos[0], "fuente")
+
+
+def test_informe_roundtrips(fake_informe: InformeArras) -> None:
+    restored = InformeArras.model_validate_json(fake_informe.model_dump_json())
+    assert restored == fake_informe
+    assert restored.nivel_riesgo_global in NivelRiesgo

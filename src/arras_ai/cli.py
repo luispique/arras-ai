@@ -12,9 +12,10 @@ from rich.panel import Panel
 from rich.table import Table
 
 from arras_ai import __version__
-from arras_ai.analyzer import AnalysisError, analyze_pdf
+from arras_ai.agent import analizar_pdf
+from arras_ai.analyzer import AnalysisError
 from arras_ai.config import load_settings
-from arras_ai.models import AnalisisArras, TipoArras
+from arras_ai.models import AnalisisArras, InformeArras, NivelRiesgo, Severidad, TipoArras
 from arras_ai.pdf import PdfExtractionError
 
 app = typer.Typer(
@@ -31,6 +32,16 @@ _TIPO_STYLE = {
     TipoArras.confirmatorias: "yellow",
     TipoArras.penales: "magenta",
     TipoArras.no_especificado: "bold red",
+}
+_NIVEL_STYLE = {
+    NivelRiesgo.alto: "bold red",
+    NivelRiesgo.medio: "yellow",
+    NivelRiesgo.bajo: "green",
+}
+_SEV_STYLE = {
+    Severidad.alta: "red",
+    Severidad.media: "yellow",
+    Severidad.baja: "dim",
 }
 
 
@@ -102,6 +113,38 @@ def _money(value: float | None, currency: str) -> str:
     return f"{value:,.2f} {currency}"
 
 
+def _render_informe(informe: InformeArras) -> None:
+    _render_human(informe.analisis)
+
+    nivel = informe.nivel_riesgo_global
+    style = _NIVEL_STYLE.get(nivel, "white")
+    console.print(
+        Panel(
+            f"[{style}]Nivel de riesgo global: {nivel.value.upper()}[/{style}]",
+            border_style=style,
+        )
+    )
+
+    if not informe.riesgos:
+        console.print("Sin riesgos detectados.")
+        return
+
+    tabla = Table(title="Riesgos detectados", show_header=True, header_style="bold")
+    tabla.add_column("Sev.")
+    tabla.add_column("Categoría")
+    tabla.add_column("Descripción")
+    tabla.add_column("Recomendación")
+    for r in informe.riesgos:
+        sev_style = _SEV_STYLE.get(r.severidad, "white")
+        tabla.add_row(
+            f"[{sev_style}]{r.severidad.value}[/{sev_style}]",
+            r.categoria.value,
+            r.descripcion,
+            r.recomendacion,
+        )
+    console.print(tabla)
+
+
 @app.command()
 def analyze(
     pdf: Annotated[Path, typer.Argument(help="Path to the arras contract PDF.")],
@@ -119,7 +162,7 @@ def analyze(
     chosen_model = model or settings.model
 
     try:
-        analisis = analyze_pdf(pdf, model=chosen_model)
+        informe = analizar_pdf(pdf, model=chosen_model)
     except PdfExtractionError as exc:
         err_console.print(f"[red]PDF error:[/red] {exc}")
         raise typer.Exit(code=2) from exc
@@ -132,10 +175,10 @@ def analyze(
 
     if json_output:
         # stdout stays clean JSON so the CLI is pipeable.
-        sys.stdout.write(analisis.model_dump_json(indent=2))
+        sys.stdout.write(informe.model_dump_json(indent=2))
         sys.stdout.write("\n")
     else:
-        _render_human(analisis)
+        _render_informe(informe)
 
 
 if __name__ == "__main__":
