@@ -6,6 +6,7 @@ suite is self-contained, and provides sample data + a fake analysis object.
 
 from __future__ import annotations
 
+import hashlib
 import sys
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from arras_ai.models import (
     Severidad,
     TipoArras,
 )
+from arras_ai.rag.embeddings import EmbeddingModel
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -101,3 +103,38 @@ def fake_informe(fake_analisis: AnalisisArras) -> InformeArras:
         ],
         nivel_riesgo_global=NivelRiesgo.alto,
     )
+
+
+class FakeEmbeddingModel(EmbeddingModel):
+    """Deterministic, semantically-meaningless embeddings for PLUMBING tests only.
+
+    Hash-seeded vectors have no semantic structure: similar texts do NOT produce
+    nearby vectors. Never use this to assert retrieval relevance — that is what the
+    fastembed integration test is for. Identical text yields an identical vector, so
+    a query with a stored doc's exact text is its own nearest neighbour.
+    """
+
+    _DIM = 16
+
+    @property
+    def dim(self) -> int:
+        return self._DIM
+
+    @property
+    def model_id(self) -> str:
+        return "fake:fake"
+
+    def _vec(self, text: str) -> list[float]:
+        h = hashlib.sha256(text.encode("utf-8")).digest()
+        return [b / 255.0 for b in h[: self._DIM]]
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [self._vec(t) for t in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._vec(text)
+
+
+@pytest.fixture
+def fake_embedding_model() -> FakeEmbeddingModel:
+    return FakeEmbeddingModel()

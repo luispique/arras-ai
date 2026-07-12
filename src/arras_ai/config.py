@@ -20,6 +20,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         protected_namespaces=(),
+        populate_by_name=True,
     )
 
     anthropic_api_key: str | None = Field(
