@@ -15,7 +15,9 @@ import pytest
 
 from arras_ai.agent import analizar_pdf
 from arras_ai.analyzer import analyze_pdf
+from arras_ai.config import load_settings
 from arras_ai.models import CategoriaRiesgo, NivelRiesgo, Severidad, TipoArras
+from arras_ai.rag.knowledge_base import KnowledgeBase
 
 pytestmark = [
     pytest.mark.integration,
@@ -65,3 +67,17 @@ def test_agente_ambiguo_flags_type_and_financing(fixtures_dir: Path) -> None:
     cats = {r.categoria for r in informe.riesgos}
     assert CategoriaRiesgo.tipo_ambiguo in cats
     assert CategoriaRiesgo.falta_financiacion in cats
+
+
+def test_retrieval_relevance_real_embeddings(tmp_path: Path) -> None:
+    # The ONLY test that asserts semantic relevance (real fastembed).
+    settings = load_settings().model_copy(update={"kb_index_dir": str(tmp_path / "idx")})
+    kb = KnowledgeBase.build(settings)
+    hits = kb.retrieve("El contrato no incluye condición suspensiva de financiación", k=3)
+    assert hits and hits[0].patron.id == "financiacion"
+
+
+def test_agente_risks_carry_citations(fixtures_dir: Path) -> None:
+    informe = analizar_pdf(fixtures_dir / "arras_confirmatorias_problematic.pdf")
+    fin = next(r for r in informe.riesgos if r.categoria is CategoriaRiesgo.falta_financiacion)
+    assert fin.referencias  # at least one Fundamento attached
