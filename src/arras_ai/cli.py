@@ -136,11 +136,15 @@ def _render_informe(informe: InformeArras) -> None:
     tabla.add_column("Recomendación")
     for r in informe.riesgos:
         sev_style = _SEV_STYLE.get(r.severidad, "white")
+        recomendacion = r.recomendacion
+        if r.referencias:
+            citas = " · ".join(f"{f.referencia}" for f in r.referencias)
+            recomendacion = f"{recomendacion}\n[dim]Cf. {citas}[/dim]"
         tabla.add_row(
             f"[{sev_style}]{r.severidad.value}[/{sev_style}]",
             r.categoria.value,
             r.descripcion,
-            r.recomendacion,
+            recomendacion,
         )
     console.print(tabla)
 

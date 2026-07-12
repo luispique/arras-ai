@@ -16,6 +16,7 @@ from arras_ai.models import (
     AnalisisArras,
     CategoriaRiesgo,
     Fechas,
+    Fundamento,
     Importes,
     InformeArras,
     Inmueble,
@@ -99,6 +100,13 @@ def fake_informe(fake_analisis: AnalisisArras) -> InformeArras:
                 descripcion="No consta cláusula suspensiva de financiación.",
                 recomendacion="Incluye una condición suspensiva de financiación.",
                 fuente="regla",
+                referencias=[
+                    Fundamento(
+                        tipo="doctrina",
+                        referencia="Cláusula suspensiva de financiación (buena práctica)",
+                        texto="Sin condición suspensiva el comprador puede perder la señal.",
+                    )
+                ],
             )
         ],
         nivel_riesgo_global=NivelRiesgo.alto,
