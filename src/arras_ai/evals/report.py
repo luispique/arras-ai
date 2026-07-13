@@ -40,7 +40,10 @@ def render_human(report: EvalReport, *, console: Console | None = None) -> None:
         "—" if report.recomendacion_media is None else f"{report.recomendacion_media:.2f}"
     )
     juez.add_row("recomendacion_media (1-5)", recomendacion_val)
-    juez.add_row("veredictos", str(report.distribucion_veredictos))
+    veredictos_str = (
+        " · ".join(f"{k}: {v}" for k, v in report.distribucion_veredictos.items()) or "—"
+    )
+    juez.add_row("veredictos", veredictos_str)
     console.print(juez)
 
     console.print(

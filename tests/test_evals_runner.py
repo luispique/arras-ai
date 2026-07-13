@@ -98,6 +98,58 @@ def test_run_evals_records_case_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert report.agregado.n == 0 or report.registros[0].determinista is None
 
 
+def test_judge_failure_keeps_deterministic(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_analizar(texto: str, **kw: object) -> InformeArras:
+        return _informe(TipoArras.penitenciales)
+
+    def boom_judge(*a: object, **k: object) -> VeredictoFidelidad:
+        raise RuntimeError("judge down")
+
+    monkeypatch.setattr(runner, "analizar_texto", fake_analizar)
+    monkeypatch.setattr(runner, "juzgar_fidelidad", boom_judge)
+    monkeypatch.setattr(
+        runner,
+        "juzgar_recomendaciones",
+        lambda *a, **k: VeredictoRecomendacion(score=4, razonamiento="r"),
+    )
+
+    report = run_evals(
+        [_caso("a", TipoArras.penitenciales)],
+        analyzer_client=object(),  # type: ignore[arg-type]
+        judge_client=object(),  # type: ignore[arg-type]
+    )
+    assert report.registros[0].determinista is not None
+    assert report.registros[0].error is not None
+    assert report.agregado.n == 1
+    assert report.n_errores == 1
+
+
+def test_no_risks_skips_recommendation(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_analizar(texto: str, **kw: object) -> InformeArras:
+        return _informe(TipoArras.penitenciales)  # empty riesgos
+
+    def boom_if_called(*a: object, **k: object) -> VeredictoRecomendacion:
+        raise AssertionError("juzgar_recomendaciones should not be called with no riesgos")
+
+    monkeypatch.setattr(runner, "analizar_texto", fake_analizar)
+    monkeypatch.setattr(
+        runner,
+        "juzgar_fidelidad",
+        lambda *a, **k: VeredictoFidelidad(
+            veredicto="fiel", score=4, evidencia="e", razonamiento="r"
+        ),
+    )
+    monkeypatch.setattr(runner, "juzgar_recomendaciones", boom_if_called)
+
+    report = run_evals(
+        [_caso("a", TipoArras.penitenciales)],
+        analyzer_client=object(),  # type: ignore[arg-type]
+        judge_client=object(),  # type: ignore[arg-type]
+    )
+    assert report.registros[0].recomendacion is None
+    assert report.registros[0].error is None
+
+
 def test_warns_when_judge_equals_analyzer(monkeypatch: pytest.MonkeyPatch, caplog) -> None:  # type: ignore[no-untyped-def]
     _patch(monkeypatch)
     import logging

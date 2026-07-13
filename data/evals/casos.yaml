@@ -1,3 +1,9 @@
+# Nota sobre gastos: los contratos que guardan SILENCIO sobre el reparto de gastos, o que
+# simplemente lo remiten a "la ley" (p. ej. "conforme a la ley"), NO deben esperar el
+# riesgo reparto_gastos_ambiguo — aplica el reparto legal supletorio del art. 1455 CC.
+# En cambio, una fórmula presente pero vaga como "por cuenta de quien corresponda" sí
+# es ambigua y sí debe esperar reparto_gastos_ambiguo (ver el caso reparto_gastos_ambiguo
+# más abajo, frente a confirmatorias_problematico, que remite a la ley y no lo espera).
 - id: penitenciales_limpio
   texto: |
     CONTRATO DE ARRAS PENITENCIALES. En Madrid, a 15 de marzo de 2025. Dña. María

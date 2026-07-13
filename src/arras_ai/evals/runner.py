@@ -76,21 +76,38 @@ def run_evals(
             informe = analizar_texto(
                 caso.texto, client=analyzer_client, model=analyzer_model, kb=kb
             )
-            registros.append(
-                CasoRegistro(
-                    id=caso.id,
-                    determinista=puntuar_caso(informe, caso.ground_truth),
-                    fidelidad=juzgar_fidelidad(
-                        caso.texto, informe, client=judge_client, model=judge_model
-                    ),
-                    recomendacion=juzgar_recomendaciones(
-                        caso.texto, informe, client=judge_client, model=judge_model
-                    ),
-                )
-            )
         except Exception as exc:  # noqa: BLE001 - one bad case must not abort the run
-            logger.warning("case %s failed: %s", caso.id, exc)
-            registros.append(CasoRegistro(id=caso.id, error=str(exc)))
+            logger.warning("case %s analysis failed: %s", caso.id, exc)
+            registros.append(CasoRegistro(id=caso.id, error=f"analysis: {exc}"))
+            continue
+
+        determinista = puntuar_caso(informe, caso.ground_truth)
+        fidelidad: VeredictoFidelidad | None = None
+        recomendacion: VeredictoRecomendacion | None = None
+        error: str | None = None
+        try:
+            fidelidad = juzgar_fidelidad(
+                caso.texto, informe, client=judge_client, model=judge_model
+            )
+            if informe.riesgos:
+                recomendacion = juzgar_recomendaciones(
+                    caso.texto, informe, client=judge_client, model=judge_model
+                )
+        except Exception as exc:  # noqa: BLE001 - a judge failure must not discard determinista
+            logger.warning("case %s judge failed: %s", caso.id, exc)
+            fidelidad = None
+            recomendacion = None
+            error = f"judge: {exc}"
+
+        registros.append(
+            CasoRegistro(
+                id=caso.id,
+                determinista=determinista,
+                fidelidad=fidelidad,
+                recomendacion=recomendacion,
+                error=error,
+            )
+        )
 
     deterministas = [r.determinista for r in registros if r.determinista is not None]
     agregado = (
@@ -135,5 +152,7 @@ def metricas_cabecera(report: EvalReport) -> dict[str, float]:
     return {
         "tipo_accuracy": report.agregado.tipo_accuracy,
         "riesgos_f1_micro": report.agregado.riesgos_f1_micro,
-        "juez_fidelidad_media": (report.fidelidad_media / 5.0) if report.fidelidad_media else 0.0,
+        "juez_fidelidad_media": (
+            report.fidelidad_media / 5.0 if report.fidelidad_media is not None else 0.0
+        ),
     }

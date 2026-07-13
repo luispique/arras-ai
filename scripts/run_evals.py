@@ -55,8 +55,15 @@ def main() -> int:
     if args.fail_under is not None:
         head = metricas_cabecera(report)
         bajos = {k: v for k, v in head.items() if v < args.fail_under}
-        if bajos:
-            print(f"\nFAIL: below --fail-under={args.fail_under}: {bajos}", file=sys.stderr)
+        if bajos or report.n_errores > 0:
+            if bajos:
+                print(f"\nFAIL: below --fail-under={args.fail_under}: {bajos}", file=sys.stderr)
+            if report.n_errores > 0:
+                print(
+                    f"\nFAIL: {report.n_errores} case(s) errored out — partial run "
+                    "cannot pass the gate",
+                    file=sys.stderr,
+                )
             return 1
         print(f"\nPASS: all headline metrics >= {args.fail_under}")
     return 0
