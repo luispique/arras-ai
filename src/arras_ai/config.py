@@ -6,6 +6,7 @@ from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_MODEL = "claude-opus-4-8"
+DEFAULT_JUDGE_MODEL = "claude-sonnet-5"
 
 
 class Settings(BaseSettings):
@@ -35,6 +36,7 @@ class Settings(BaseSettings):
     openai_api_key: str | None = Field(default=None, validation_alias="OPENAI_API_KEY")
     voyage_api_key: str | None = Field(default=None, validation_alias="VOYAGE_API_KEY")
     kb_index_dir: str = Field(default=".arras_kb_index", validation_alias="ARRAS_KB_INDEX_DIR")
+    judge_model: str = Field(default=DEFAULT_JUDGE_MODEL, validation_alias="ARRAS_JUDGE_MODEL")
 
 
 def load_settings() -> Settings:
