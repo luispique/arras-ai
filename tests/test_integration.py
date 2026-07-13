@@ -81,3 +81,22 @@ def test_agente_risks_carry_citations(fixtures_dir: Path) -> None:
     informe = analizar_pdf(fixtures_dir / "arras_confirmatorias_problematic.pdf")
     fin = next(r for r in informe.riesgos if r.categoria is CategoriaRiesgo.falta_financiacion)
     assert fin.referencias  # at least one Fundamento attached
+
+
+def test_eval_harness_runs_on_a_case() -> None:
+    from arras_ai.config import load_settings
+    from arras_ai.evals.dataset import load_casos
+    from arras_ai.evals.runner import run_evals
+
+    settings = load_settings()
+    caso = next(c for c in load_casos() if c.id == "penitenciales_impecable")
+    report = run_evals(
+        [caso],
+        analyzer_model=settings.model,
+        judge_model=settings.judge_model,
+    )
+    assert report.agregado.n == 1
+    assert report.n_errores == 0
+    # An unambiguous penitenciales contract must classify correctly.
+    assert report.agregado.tipo_accuracy == 1.0
+    assert report.fidelidad_media is not None and report.fidelidad_media >= 3
