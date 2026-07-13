@@ -1,0 +1,243 @@
+- id: penitenciales_limpio
+  texto: |
+    CONTRATO DE ARRAS PENITENCIALES. En Madrid, a 15 de marzo de 2025. Dña. María
+    Fernández (NIF 12345678Z), vendedora, y D. Javier López (NIF 87654321X), comprador,
+    sobre la vivienda en calle Goya 78, 3ºB, 28001 Madrid, referencia catastral
+    9872023VH5797S0001WX, libre de cargas, precio 280.000 €. El comprador entrega
+    28.000 € en concepto de arras penitenciales conforme al artículo 1454 del Código
+    Civil; si desiste el comprador perderá las arras y si desiste la vendedora las
+    devolverá duplicadas. La escritura se otorgará antes del 15 de junio de 2025. La
+    eficacia se condiciona a la obtención de financiación hipotecaria en 45 días; de
+    denegarse, se devolverán las arras. Gastos: notaría al vendedor, inscripción al
+    comprador, plusvalía al vendedor.
+  ground_truth:
+    tipo_arras: penitenciales
+    confianza_min: 0.7
+    tiene_clausula_financiacion: true
+    precio_total: 280000
+    importe_arras: 28000
+    fecha_limite_presente: true
+    referencia_catastral_presente: true
+    riesgos_esperados: []
+    nivel_riesgo_global: bajo
+- id: confirmatorias_problematico
+  texto: |
+    CONTRATO PRIVADO DE COMPRAVENTA CON SEÑAL. En Valencia, a 3 de abril de 2025. D.
+    Antonio Martínez (DNI 44556677P), vendedor, y Dña. Laura Gómez (DNI 11223344Q),
+    compradora, sobre el piso en avenida del Puerto 210, 5º, Valencia. Precio 190.000 €.
+    La compradora entrega 10.000 € en concepto de señal y como parte del precio, a
+    cuenta del precio total; dicha cantidad confirma el contrato. Las partes se
+    comprometen a elevar a escritura pública en el plazo más breve posible, cuando la
+    documentación esté en regla. Los gastos se distribuirán conforme a la ley.
+  ground_truth:
+    tipo_arras: confirmatorias
+    tiene_clausula_financiacion: false
+    precio_total: 190000
+    importe_arras: 10000
+    fecha_limite_presente: false
+    referencia_catastral_presente: false
+    riesgos_esperados: [falta_financiacion, fechas_mal_definidas, inmueble_mal_identificado]
+    nivel_riesgo_global: alto
+- id: ambiguo
+  texto: |
+    DOCUMENTO DE ARRAS. En Sevilla, a 20 de febrero de 2025. D. Carlos Ruiz (NIF
+    55667788M), parte transmitente, y Dña. Elena Navarro (NIF 99887766L), parte
+    adquirente, sobre la vivienda en calle Betis 12, bajo, 41010 Sevilla. Precio
+    210.000 €. En garantía del cumplimiento del acuerdo, la parte adquirente entrega
+    15.000 € en concepto de arras. Las partes formalizarán la compraventa ante notario
+    en el plazo de sesenta (60) días naturales desde la firma. Firmado.
+  ground_truth:
+    tipo_arras: no_especificado
+    confianza_max: 0.6
+    tiene_clausula_financiacion: false
+    precio_total: 210000
+    importe_arras: 15000
+    fecha_limite_presente: true
+    referencia_catastral_presente: false
+    riesgos_esperados: [tipo_ambiguo, falta_financiacion, inmueble_mal_identificado]
+    nivel_riesgo_global: alto
+- id: penales_explicito
+  texto: |
+    CONTRATO DE ARRAS PENALES. En Bilbao, a 10 de enero de 2025. D. Ander Solozabal
+    (NIF 30111222K), vendedor, y Dña. Nerea Aguirre (NIF 30333444L), compradora, sobre
+    la vivienda en calle Gran Vía 5, 3ºA, Bilbao, referencia catastral
+    1234567AB1234C0001DE, libre de cargas, por 350.000 €. La compradora entrega
+    35.000 € en concepto de arras penales. Conforme a los artículos 1152 y 1153 del
+    Código Civil, dicha cantidad operará como cláusula penal en caso de incumplimiento,
+    sin que ninguna parte pueda desistir libremente: la parte cumplidora podrá exigir el
+    cumplimiento del contrato o la pena. La escritura pública se otorgará antes del 10 de
+    abril de 2025. La eficacia queda condicionada a la obtención de financiación
+    hipotecaria por la compradora en 30 días; de denegarse, se resolverá con devolución
+    de las arras. Gastos: notaría y matriz al vendedor, primera copia e inscripción al
+    comprador, plusvalía al vendedor.
+  ground_truth:
+    tipo_arras: penales
+    confianza_min: 0.7
+    tiene_clausula_financiacion: true
+    precio_total: 350000
+    importe_arras: 35000
+    fecha_limite_presente: true
+    referencia_catastral_presente: true
+    riesgos_esperados: []
+    nivel_riesgo_global: bajo
+- id: penitenciales_sin_financiacion
+  texto: |
+    CONTRATO DE ARRAS PENITENCIALES. En Sevilla, a 5 de febrero de 2025. Dña. Carmen
+    Ortiz (NIF 28111222M), vendedora, y D. Pablo Ramos (NIF 28333444N), comprador, sobre
+    la vivienda en calle Feria 40, 2ºB, Sevilla, referencia catastral
+    7654321ZZ7654X0001AB, libre de cargas, precio 220.000 €. El comprador entrega
+    22.000 € en concepto de arras penitenciales conforme al artículo 1454 del Código
+    Civil: si el comprador desiste perderá las arras; si desiste la vendedora las
+    devolverá duplicadas. La escritura se firmará a más tardar el 5 de mayo de 2025. Los
+    gastos se distribuirán conforme a la ley.
+  ground_truth:
+    tipo_arras: penitenciales
+    confianza_min: 0.7
+    tiene_clausula_financiacion: false
+    precio_total: 220000
+    importe_arras: 22000
+    fecha_limite_presente: true
+    referencia_catastral_presente: true
+    riesgos_esperados: [falta_financiacion]
+    nivel_riesgo_global: alto
+- id: confirmatorias_limpio
+  texto: |
+    CONTRATO DE COMPRAVENTA CON ARRAS CONFIRMATORIAS. En Zaragoza, a 12 de marzo de
+    2025. D. Luis Marín (NIF 25111222P), vendedor, y Dña. Sara Gil (NIF 25333444Q),
+    compradora, sobre el piso en paseo Independencia 8, 4ºC, Zaragoza, referencia
+    catastral 3456789CD3456E0001FG, libre de cargas, precio 175.000 €. La compradora
+    entrega 17.500 € en concepto de arras confirmatorias, como pago a cuenta del precio;
+    las partes no podrán desistir y quedan obligadas a otorgar la escritura pública antes
+    del 12 de junio de 2025. La eficacia se somete a la condición suspensiva de que la
+    compradora obtenga préstamo hipotecario en 45 días. Gastos: notaría y registro por
+    mitad, plusvalía municipal al vendedor.
+  ground_truth:
+    tipo_arras: confirmatorias
+    confianza_min: 0.7
+    tiene_clausula_financiacion: true
+    precio_total: 175000
+    importe_arras: 17500
+    fecha_limite_presente: true
+    referencia_catastral_presente: true
+    riesgos_esperados: []
+    nivel_riesgo_global: bajo
+- id: reparto_gastos_ambiguo
+  texto: |
+    CONTRATO DE ARRAS PENITENCIALES. En Málaga, a 20 de marzo de 2025. Dña. Rosa Díaz
+    (NIF 26111222R), vendedora, y D. Jorge León (NIF 26333444S), comprador, sobre la
+    vivienda en calle Larios 3, 1ºA, Málaga, referencia catastral 9988776YY9988Z0001CD,
+    libre de cargas, precio 300.000 €. El comprador entrega 30.000 € en concepto de
+    arras penitenciales (art. 1454 CC), con pérdida o devolución duplicada en caso de
+    desistimiento. Escritura antes del 20 de junio de 2025. La operación queda
+    condicionada a la concesión de hipoteca al comprador en 30 días. Los gastos de la
+    operación correrán por cuenta de quien corresponda.
+  ground_truth:
+    tipo_arras: penitenciales
+    confianza_min: 0.7
+    tiene_clausula_financiacion: true
+    precio_total: 300000
+    importe_arras: 30000
+    fecha_limite_presente: true
+    referencia_catastral_presente: true
+    riesgos_esperados: [reparto_gastos_ambiguo]
+    nivel_riesgo_global: bajo
+- id: inmueble_sin_catastral
+  texto: |
+    CONTRATO DE ARRAS PENITENCIALES. En Murcia, a 2 de abril de 2025. D. Tomás Vera
+    (NIF 48111222T), vendedor, y Dña. Ana Soler (NIF 48333444V), compradora, sobre la
+    vivienda en avenida de la Libertad 22, 5ºD, Murcia, precio 160.000 €. La compradora
+    entrega 16.000 € en concepto de arras penitenciales conforme al artículo 1454 del
+    Código Civil. La escritura se otorgará antes del 2 de julio de 2025. La eficacia se
+    condiciona a la obtención de financiación hipotecaria en 30 días. Gastos: notaría al
+    vendedor, registro al comprador, plusvalía al vendedor.
+  ground_truth:
+    tipo_arras: penitenciales
+    confianza_min: 0.7
+    tiene_clausula_financiacion: true
+    precio_total: 160000
+    importe_arras: 16000
+    fecha_limite_presente: true
+    referencia_catastral_presente: false
+    riesgos_esperados: [inmueble_mal_identificado]
+    nivel_riesgo_global: medio
+- id: fechas_sin_plazo
+  texto: |
+    CONTRATO DE ARRAS CONFIRMATORIAS. En Valladolid, a 8 de abril de 2025. Dña. Marta
+    Cano (NIF 71111222W), vendedora, y D. Iván Prieto (NIF 71333444X), comprador, sobre
+    el piso en calle Santiago 15, 2ºA, Valladolid, referencia catastral
+    5566778WW5566V0001EF, libre de cargas, precio 140.000 €. El comprador entrega
+    14.000 € en concepto de arras confirmatorias, como pago a cuenta del precio; las
+    partes quedan obligadas a la compraventa. La eficacia se condiciona a la obtención de
+    hipoteca por el comprador en 45 días. Gastos: notaría y registro por mitad, plusvalía
+    al vendedor. Las partes firmarán la escritura pública cuando la documentación esté
+    lista.
+  ground_truth:
+    tipo_arras: confirmatorias
+    confianza_min: 0.6
+    tiene_clausula_financiacion: true
+    precio_total: 140000
+    importe_arras: 14000
+    fecha_limite_presente: false
+    referencia_catastral_presente: true
+    riesgos_esperados: [fechas_mal_definidas]
+    nivel_riesgo_global: medio
+- id: adversarial_senal_confirmatoria
+  texto: |
+    DOCUMENTO PRIVADO DE COMPRAVENTA. En Alicante, a 15 de abril de 2025. D. Raúl Mora
+    (NIF 21111222Y), vendedor, y Dña. Lucía Ferrer (NIF 21333444Z), compradora, sobre el
+    apartamento en calle San Fernando 9, 3ºB, Alicante, referencia catastral
+    2233445UU2233T0001GH, libre de cargas, precio 200.000 €. En este acto la compradora
+    entrega 20.000 € en concepto de señal y a cuenta del precio total; dicha entrega
+    confirma la compraventa y las partes quedan obligadas a elevarla a escritura pública
+    antes del 15 de julio de 2025. El documento no menciona derecho de desistimiento
+    alguno.
+  ground_truth:
+    tipo_arras: confirmatorias
+    confianza_min: 0.55
+    tiene_clausula_financiacion: false
+    precio_total: 200000
+    importe_arras: 20000
+    fecha_limite_presente: true
+    referencia_catastral_presente: true
+    riesgos_esperados: [falta_financiacion]
+    nivel_riesgo_global: alto
+- id: minimo
+  texto: |
+    ARRAS. En Toledo, a 1 de mayo de 2025. Vendedor: D. Mario Gómez (NIF 06111222A).
+    Comprador: Dña. Elena Ruiz (NIF 06333444B). Vivienda en calle Comercio 4, Toledo.
+    Precio: 130.000 euros. Se entregan 13.000 euros en concepto de arras. Firmado por
+    ambas partes.
+  ground_truth:
+    tipo_arras: no_especificado
+    confianza_max: 0.6
+    tiene_clausula_financiacion: false
+    precio_total: 130000
+    importe_arras: 13000
+    fecha_limite_presente: false
+    referencia_catastral_presente: false
+    riesgos_esperados: [tipo_ambiguo, falta_financiacion, fechas_mal_definidas, inmueble_mal_identificado]
+    nivel_riesgo_global: alto
+- id: penitenciales_impecable
+  texto: |
+    CONTRATO DE ARRAS PENITENCIALES. En Madrid, a 3 de junio de 2025. Dña. Isabel Nieto
+    (NIF 51111222C), vendedora, y D. Andrés Vidal (NIF 51333444D), comprador, sobre la
+    vivienda en calle Velázquez 30, 6º izq, 28001 Madrid, referencia catastral
+    8877665RR8877Q0001IJ, inscrita en el Registro de la Propiedad nº 5 de Madrid, libre
+    de cargas y arrendatarios, precio 480.000 €. El comprador entrega 48.000 € en
+    concepto de arras penitenciales conforme al artículo 1454 del Código Civil, con
+    pérdida o devolución duplicada en caso de desistimiento. La escritura pública se
+    otorgará ante notario a más tardar el 3 de septiembre de 2025. La eficacia queda
+    sujeta a la condición suspensiva de obtención de financiación hipotecaria por importe
+    mínimo de 350.000 € en 45 días; en su defecto, el contrato se resolverá con
+    devolución íntegra de las arras. Gastos: escritura y matriz al vendedor, primera
+    copia e inscripción al comprador, plusvalía al vendedor.
+  ground_truth:
+    tipo_arras: penitenciales
+    confianza_min: 0.85
+    tiene_clausula_financiacion: true
+    precio_total: 480000
+    importe_arras: 48000
+    fecha_limite_presente: true
+    referencia_catastral_presente: true
+    riesgos_esperados: []
+    nivel_riesgo_global: bajo
