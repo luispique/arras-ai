@@ -194,6 +194,42 @@ distinct from `Riesgo.fuente` (who found it: rule vs. LLM) and from Sprint 1's
 cited deterministically; LLM risks cite only the patterns the model explicitly
 named, never an unrelated top-k match. `jurisprudencia` is reserved, unpopulated.
 
+## Sprint 4: the eval harness
+
+Sprint 4 adds `evals/` — a harness that scores the pipeline against a
+ground-truth dataset instead of eyeballing individual outputs, using the same
+**hybrid** philosophy as risk detection: **deterministic scoring for objective
+outputs, LLM-as-judge only for the subjective remainder.**
+
+`metrics.py` scores what has a single correct answer with plain Python, no API
+call: type accuracy, field accuracy (amounts, dates, cadastral reference),
+precision/recall/F1 on detected risk categories, and overall risk-level
+accuracy. Cheap, exact, and reproduce identically on every run.
+
+`judge.py` covers what can't be scored by equality: whether the model's stated
+justification is **faithful** to the contract text (no invented facts,
+evidence-quoted), and whether each recommendation is pertinent and actionable.
+Crucially, the judge is **not** re-deciding the law — `puntuar_caso` already
+knows the correct `tipo_arras`; the judge only checks the model's reasoning is
+grounded. It runs on an **independent** model (`ARRAS_JUDGE_MODEL`, default
+`claude-sonnet-5`, distinct from the analyzer's `claude-opus-4-8`) to avoid
+self-evaluation bias; `run_evals` logs a warning rather than failing if the two
+coincide, since a contributor may want that for a quick check.
+
+Ground truth (`data/evals/casos.yaml`) is **by construction**: each case's
+`GroundTruth` matches the synthetic contract text as authored, not inferred
+from a first run of the pipeline — otherwise the harness would measure
+agreement with itself.
+
+`scripts/run_evals.py` (`--only`, `--fail-under`, `--json`) is deliberately
+**not** wired into CI: every run costs real API calls against both models, and
+the judge's scores aren't bit-for-bit deterministic — unsuitable for a
+required, always-green check. It stays on-demand, for release checks or after
+a prompt change. The new `test_eval_harness_runs_on_a_case`
+(`tests/test_integration.py`) calls the same harness directly on one case,
+inheriting the module's `skipif(not ANTHROPIC_API_KEY)` gate so CI without a
+key stays green.
+
 ## Testing strategy
 
 - **Unit tests** (offline, default `pytest` run): schema validation, PDF
@@ -216,6 +252,7 @@ is the core abstraction and type errors in it would be silent data bugs.
 
 ## Deliberately out of scope for Sprint 1
 
-LangGraph agent (Sprint 2), vector store / RAG (delivered in Sprint 3), eval harness with
-ground truth (Sprint 4), web frontend (Sprint 5), and MCP server (Sprint 6). The
-module boundaries above are drawn so each can be added without a rewrite.
+LangGraph agent (Sprint 2), vector store / RAG (delivered in Sprint 3), eval
+harness with ground truth (delivered in Sprint 4), web frontend (Sprint 5), and
+MCP server (Sprint 6). The module boundaries above are drawn so each can be
+added without a rewrite.

@@ -237,6 +237,57 @@ for why, and for every other technical choice — Python, uv, pdfplumber over
 PyMuPDF (a licensing call), and the hybrid English-instructions /
 Spanish-domain prompt strategy.
 
+## Evals
+
+`evals/` scores the pipeline against `data/evals/casos.yaml`, a set of
+synthetic contracts with **by-construction** ground truth (written to match
+the contract text as authored, not inferred from a first run — see
+[ARCHITECTURE.md](ARCHITECTURE.md#sprint-4-the-eval-harness) for the
+reasoning). It measures two different things, on purpose:
+
+- **Deterministic metrics** (no API call): type accuracy, field accuracy
+  (amounts, dates, cadastral reference), precision/recall/F1 on detected risk
+  categories, and overall risk-level accuracy.
+- **LLM-as-judge scores**, from an independent model (`ARRAS_JUDGE_MODEL`,
+  default `claude-sonnet-5`, distinct from the analyzer): a 1–5 faithfulness
+  score for whether the stated justification for the arras type is grounded
+  in the contract text, and a 1–5 score for whether each recommendation is
+  pertinent and actionable. The judge never re-decides the type or law itself.
+
+Run it with:
+
+```bash
+uv run python scripts/run_evals.py
+uv run python scripts/run_evals.py --only minimo --fail-under 0.7
+uv run python scripts/run_evals.py --json report.json
+```
+
+Example summary (illustrative — real numbers vary run to run, since the
+judge's scores are not deterministic):
+
+```text
+       Evals — métricas deterministas
+┌────────────────────┬─────────┐
+│ Métrica             │   Valor │
+├────────────────────┼─────────┤
+│ tipo_accuracy       │  91.67% │
+│ riesgos_f1_micro    │  85.00% │
+│ nivel_accuracy      │ 100.00% │
+└────────────────────┴─────────┘
+        Evals — LLM-as-judge
+┌────────────────────────┬───────┐
+│ Métrica                 │ Valor │
+├────────────────────────┼───────┤
+│ fidelidad_media (1-5)    │  4.58 │
+│ recomendacion_media (1-5)│  4.33 │
+└────────────────────────┴───────┘
+casos: 12 · errores: 0 · analizador: claude-opus-4-8 · juez: claude-sonnet-5
+```
+
+It needs `ANTHROPIC_API_KEY` for both the analyzer and the judge, and is
+deliberately **not** part of the default CI run — every run costs real API
+calls against two models. Run it before a release or after changing a prompt.
+
 ## Roadmap
 
 Sprint 1 was the foundation; Sprint 2 added the agent and risk detection. The module
@@ -250,8 +301,9 @@ boundaries are drawn so each of the following slots in without a rewrite:
       and doctrine grounds the LLM risk pass; risks now carry citable legal
       fundamentos (Código Civil articles looked up deterministically, plus the
       retrieved doctrine).
-- [ ] **Sprint 4 — Evals.** A ground-truth dataset and an LLM-as-judge harness to
-      measure accuracy and prevent regressions.
+- [x] **Sprint 4 — Evals.** A ground-truth dataset and a hybrid harness
+      (deterministic metrics + LLM-as-judge) to measure accuracy and prevent
+      regressions.
 - [ ] **Sprint 5 — Interfaces.** Web UI and a packaged CLI; deployment.
 - [ ] **Sprint 6 — MCP server.** Expose the analysis as an MCP tool, plus public
       launch.
