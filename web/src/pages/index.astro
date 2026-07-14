@@ -1,5 +1,31 @@
 ---
 import "../styles/global.css";
+import Analizador from "../components/Analizador.astro";
 ---
-<html lang="es"><head><meta charset="utf-8" /><title>arras-ai</title></head>
-<body><h1>arras-ai (placeholder)</h1></body></html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>arras-ai — analiza tu contrato de arras</title>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <main class="py-10">
+      <header class="mx-auto max-w-3xl px-4 mb-6">
+        <h1 class="text-2xl font-bold">arras-ai</h1>
+        <p class="text-slate-600 mt-1">
+          Analiza un contrato de arras: detecta el tipo, extrae los datos clave y señala
+          los riesgos, con referencias al Código Civil.
+        </p>
+        <p class="text-xs text-slate-500 mt-2">
+          Demo pública con límites de uso. <a class="underline" href="#disclaimer">No es asesoramiento legal.</a>
+        </p>
+      </header>
+      <Analizador />
+      <footer id="disclaimer" class="mx-auto max-w-3xl px-4 mt-10 border-t pt-4 text-xs text-slate-500">
+        <strong>Aviso legal:</strong> arras-ai es una herramienta experimental y NO sustituye el
+        asesoramiento de un abogado o notario. Puede cometer errores; verifica siempre el resultado
+        con el contrato original.
+      </footer>
+    </main>
+  </body>
+</html>
