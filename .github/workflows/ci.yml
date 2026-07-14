@@ -44,3 +44,10 @@ jobs:
       - run: npm ci
       - run: npm run test
       - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the self-host image
+        run: docker build -t arras-ai:ci .
