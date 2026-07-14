@@ -31,10 +31,12 @@ interface; the 5-pattern index is built lazily in `/tmp` on the first request.
 4. In the Vercel dashboard → Firewall, add a **per-IP rate-limit rule** on
    `/api/analyze` (e.g. 5 requests/minute per IP).
 5. `vercel deploy --prod`.
-6. Confirm a real request returns 200 (not 500) — this validates that `src/` and
-   `data/` were bundled into the `api/analyze.py` function (see the `includeFiles`
-   entry in the root `vercel.json`). A 500 with `ModuleNotFoundError: arras_ai` or
-   `FileNotFoundError: data/kb/...` means the bundle is missing those directories.
+6. Confirm a real request returns 200 (not 500) — this validates that `src/`
+   (including the `arras_ai/kb_data/` package data) was bundled into the
+   `api/analyze.py` function (see the `includeFiles` entry in the root
+   `vercel.json`). A 500 with `ModuleNotFoundError: arras_ai` or
+   `FileNotFoundError: .../kb_data/...` means the bundle is missing that
+   directory.
 7. Check the function bundle size against Vercel's Python bundle limit (500 MB
    uncompressed, or higher with Fluid compute) — `lancedb`/`pyarrow` are heavy.
 8. Put the resulting URL in the root `README.md` "Try it" section.

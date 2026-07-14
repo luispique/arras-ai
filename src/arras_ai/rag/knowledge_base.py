@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.resources
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -56,6 +57,11 @@ class PatronHit(BaseModel):
     score: float
 
 
+def _default_kb_dir() -> Path:
+    """The KB YAML ships inside the package (works from any install, no repo checkout)."""
+    return Path(str(importlib.resources.files("arras_ai") / "kb_data"))
+
+
 def _load_yaml_list(path: Path) -> list[dict[str, object]]:
     with path.open(encoding="utf-8") as fh:
         data = yaml.safe_load(fh)
@@ -107,7 +113,7 @@ class KnowledgeBase:
         from arras_ai.rag.embeddings import make_embedding_model
         from arras_ai.rag.store import LanceDBStore
 
-        data_dir = data_dir or (Path(__file__).resolve().parents[3] / "data" / "kb")
+        data_dir = data_dir or _default_kb_dir()
         index_dir = Path(settings.kb_index_dir)
         embedding_model = make_embedding_model(settings)
         store = LanceDBStore(index_dir=index_dir, dim=embedding_model.dim)

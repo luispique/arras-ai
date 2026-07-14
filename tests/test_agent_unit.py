@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.resources
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -22,7 +23,7 @@ from arras_ai.models import (
 )
 from arras_ai.rag.knowledge_base import KnowledgeBase
 
-_KB_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "kb"
+_KB_DATA_DIR = Path(str(importlib.resources.files("arras_ai") / "kb_data"))
 
 
 def _load_kb() -> KnowledgeBase:
@@ -123,13 +124,10 @@ def test_analizar_texto_rejects_empty() -> None:
 
 
 def test_detectar_riesgos_llm_maps_patron_ids_to_fundamentos(fake_analisis: AnalisisArras) -> None:
-    from pathlib import Path
-
     from arras_ai.models import RiesgoLLM, RiesgosDetectadosLLM
-    from arras_ai.rag.knowledge_base import KnowledgeBase, PatronHit
+    from arras_ai.rag.knowledge_base import PatronHit
 
-    data_dir = Path(__file__).resolve().parent.parent / "data" / "kb"
-    kb = KnowledgeBase.from_data_dir(data_dir, index_dir=Path("/tmp/unused"))
+    kb = _load_kb()
     parsed = RiesgosDetectadosLLM(
         riesgos=[
             RiesgoLLM(
@@ -167,13 +165,9 @@ def test_detectar_riesgos_llm_maps_patron_ids_to_fundamentos(fake_analisis: Anal
 def test_analizar_texto_attaches_rule_citations(
     monkeypatch: pytest.MonkeyPatch, fake_analisis: AnalisisArras
 ) -> None:
-    from pathlib import Path
-
     from arras_ai.models import CategoriaRiesgo, NivelRiesgo
-    from arras_ai.rag.knowledge_base import KnowledgeBase
 
-    data_dir = Path(__file__).resolve().parent.parent / "data" / "kb"
-    kb = KnowledgeBase.from_data_dir(data_dir, index_dir=Path("/tmp/unused"))
+    kb = _load_kb()
 
     analisis = fake_analisis.model_copy(update={"tiene_clausula_financiacion": False})
     monkeypatch.setattr(agent, "analyze_text", lambda *a, **k: analisis)

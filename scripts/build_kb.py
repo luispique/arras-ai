@@ -1,4 +1,4 @@
-"""Build the LanceDB knowledge-base index from data/kb/*.yaml.
+"""Build the LanceDB knowledge-base index from src/arras_ai/kb_data/*.yaml.
 
 uv run python scripts/build_kb.py
 """

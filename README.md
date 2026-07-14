@@ -184,6 +184,35 @@ uv run python scripts/generate_fixtures.py
 uv run arras analyze tests/fixtures/arras_confirmatorias_problematic.pdf
 ```
 
+## Install / self-host
+
+Beyond `uv run` from a clone (above), there are two self-host paths:
+
+**pipx** — installs the CLI into an isolated environment:
+
+```bash
+pipx install git+https://github.com/luispique/arras-ai
+export ANTHROPIC_API_KEY=sk-ant-...
+arras analyze contrato.pdf
+```
+
+The first run downloads the local embedding model (`fastembed`, ~2 GB) once;
+everything after is offline.
+
+**Docker** — builds a self-contained image (no local Python needed):
+
+```bash
+docker build -t arras-ai .
+docker run --rm -e ANTHROPIC_API_KEY=sk-ant-... \
+  -v "$PWD:/data" -v arras-cache:/cache \
+  arras-ai analyze /data/contrato.pdf
+```
+
+The first run is slow — it downloads the embedding model into the
+`arras-cache` volume — but it's reused on every run after that.
+
+**PyPI**: planned; not yet published.
+
 ## How it works
 
 A LangGraph agent (`agent.py`) drives a 4-node pipeline from PDF to risk report:
@@ -222,12 +251,13 @@ PDF ──▶ extraer ──▶ recuperar_contexto ──▶ detectar_riesgos �
 
 ### Knowledge base
 
-The legal content lives in `data/kb/` as source YAML: `codigo_civil.yaml` (the
-Código Civil articles the tool cites) and `patrones.yaml` (authored
-problematic-clause patterns and doctrine). The latter is embedded into a local
-LanceDB index the first time it's needed (or explicitly via
-`uv run python scripts/build_kb.py`); the index itself is git-ignored and
-rebuilt on demand.
+The legal content lives in `src/arras_ai/kb_data/` as source YAML —
+`codigo_civil.yaml` (the Código Civil articles the tool cites) and
+`patrones.yaml` (authored problematic-clause patterns and doctrine) — shipped
+as package data, so it's available wherever the package is installed (pip,
+pipx, Docker). `patrones.yaml` is embedded into a local LanceDB index the
+first time it's needed (or explicitly via `uv run python scripts/build_kb.py`);
+the index itself is git-ignored and rebuilt on demand.
 
 Embeddings are **local by default** (`fastembed`, no API key, works offline)
 — set `ARRAS_EMBEDDING_PROVIDER=openai` or `voyage` (with the matching API key
@@ -309,7 +339,7 @@ boundaries are drawn so each of the following slots in without a rewrite:
 - [x] **Sprint 4 — Evals.** A ground-truth dataset and a hybrid harness
       (deterministic metrics + LLM-as-judge) to measure accuracy and prevent
       regressions.
-- [~] **Sprint 5 — Interfaces.** Web demo (done); CLI/Docker packaging (next).
+- [x] **Sprint 5 — Interfaces.** Web demo and CLI/Docker packaging, both done.
 - [ ] **Sprint 6 — MCP server.** Expose the analysis as an MCP tool, plus public
       launch.
 

@@ -162,7 +162,8 @@ still produced from the deterministic rule risks alone — degraded, not broken.
 Sprint 3 adds a legal knowledge base with **two deliberately different retrieval
 paths**, because the two kinds of content have different correctness needs.
 
-**Código Civil articles** (`data/kb/codigo_civil.yaml`, official BOE text) are a
+**Código Civil articles** (`src/arras_ai/kb_data/codigo_civil.yaml`, official
+BOE text) are a
 small, fixed set — a handful of articles decide the whole domain. They are loaded
 into memory and resolved by **deterministic exact lookup** (`get_articulo`,
 `citar()` in `riesgos.py`), mapping a risk category to an article id directly.
@@ -170,8 +171,8 @@ This is *not* RAG: for a fixed, known statute, similarity search only adds a
 chance of citing the wrong article, which is unacceptable in a legal tool. RAG
 earns its keep only for the second path.
 
-**Problematic-clause patterns and doctrine** (`data/kb/patrones.yaml`, authored,
-not statute) are embedded and indexed in **LanceDB** (embedded, file-based), and
+**Problematic-clause patterns and doctrine** (`src/arras_ai/kb_data/patrones.yaml`,
+authored, not statute) are embedded and indexed in **LanceDB** (embedded, file-based), and
 retrieved by semantic similarity (`KnowledgeBase.retrieve`). Embeddings sit
 behind an `EmbeddingModel` interface — local `fastembed` (ONNX, no API key,
 offline) is the default; `openai` and `voyage` adapters lazy-import their SDKs
@@ -258,6 +259,19 @@ Cost is bounded three ways: the input caps above, a per-IP rate-limit rule on
 `/api/analyze` in the Vercel Firewall, and a monthly spend limit set on the
 Anthropic API key itself — the last line of defense if the first two are
 bypassed.
+
+**Packaging for self-host.** The knowledge base (`codigo_civil.yaml`,
+`patrones.yaml`) ships as **package data** under `src/arras_ai/kb_data/`,
+resolved at runtime via `importlib.resources` (`_default_kb_dir()` in
+`knowledge_base.py`) rather than a path relative to the repo root. That makes
+the package self-contained for `pip`/`pipx`/Docker installs — the KB travels
+inside the wheel, so the CLI works from any working directory without a
+checkout of the source repo. This is the self-host half of the Sprint 5
+two-layer split: local `fastembed` embeddings, a git-ignored index cached
+under `ARRAS_KB_INDEX_DIR` (and the model itself under
+`FASTEMBED_CACHE_PATH`, both pointed at a mounted volume in the Docker image),
+as opposed to the Vercel demo's hosted Voyage embeddings and ephemeral `/tmp`
+index described above.
 
 ## Testing strategy
 
