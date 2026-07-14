@@ -1,82 +1,105 @@
 # Sprint 5 (part 2) — CLI/Docker packaging (self-host)
 
-**Status:** approved (design)
+**Status:** approved (design, revised after a packaging discovery)
 **Date:** 2026-07-14
-**Depends on:** the existing core (`arras` CLI entry point in `pyproject.toml`, `[project.scripts] arras = "arras_ai.cli:app"`, from Sprint 1) and the `ARRAS_KB_INDEX_DIR` env seam (Sprint 3).
+**Depends on:** the existing `arras` CLI entry point (`pyproject.toml`, Sprint 1) and
+the `KnowledgeBase`/RAG layer (Sprint 3).
 
 ## Goal
 
 Package the **self-host core layer** so a technical user can run `arras` without a
-dev checkout: a `Dockerfile` (with the fastembed model cached in a mounted volume)
-plus install/self-host docs. The CLI is already pip/pipx-installable via the
-existing entry point, so this sprint adds Docker + documentation and validates the
-packaged install.
+dev checkout: make the package **self-contained**, add a `Dockerfile` (fastembed
+model cached in a mounted volume), and document pipx + Docker self-host.
 
-### Non-goals
+## Packaging discovery (drives the one core change)
 
-- Publishing to PyPI (documented as an optional future; needs the maintainer's PyPI
-  account/token — not done here).
-- Any change to the core behavior or the web demo.
-- Baking the 2 GB model into the image (rejected: runtime download + cache volume).
+The knowledge-base YAML lives at repo-root `data/kb/`, **outside** the package
+`src/arras_ai/`. Every run so far was `uv run arras` *from the repo*, so
+`KnowledgeBase.build()` found it via `parents[3]/data/kb`. A real pip/pipx/wheel
+install puts `arras_ai` in `site-packages` and does **not** ship `data/kb` → the
+full `arras analyze` path would fail with `FileNotFoundError`. Packaging can't work
+until the KB ships inside the package. This is a latent bug the packaging surfaces.
 
 ## Deliverables
 
-1. **`Dockerfile`** (self-host core):
-   - Base `python:3.12-slim`; install the project so the `arras` console script is on
-     PATH with its runtime deps **including local `fastembed`** (self-host default).
-   - `ENTRYPOINT ["arras"]`, `WORKDIR /data` (mount the user's contracts there).
-   - Route large caches into a **mountable volume**: set `HOME=/cache` and
-     `HF_HOME=/cache/hf` (fastembed pulls model weights via the Hugging Face hub) and
-     `ARRAS_KB_INDEX_DIR=/cache/kb_index` (existing env seam) so the model download +
-     KB index persist across runs in a `-v` volume. (The implementer confirms the exact
-     cache env fastembed honors; the first real run — user-side — validates it.)
-2. **`.dockerignore`**: exclude `web/`, `node_modules`, `.git`, `tests/`, `docs/`,
-   `.superpowers/`, `.arras_kb_index/`, `dist/`, `__pycache__`, `.venv`, `.vercel`.
-3. **CI `docker` job**: `docker build` the image (no run, no push) as a Dockerfile
-   regression guard. The existing `check` and `web` jobs are unchanged.
-4. **Docs** (`README.md`): an "Install / self-host" section —
-   - pipx: `pipx install git+https://github.com/luispique/arras-ai`, then
-     `export ANTHROPIC_API_KEY=... && arras analyze contrato.pdf`.
-   - Docker: `docker run --rm -e ANTHROPIC_API_KEY=... -v "$PWD:/data" -v arras-cache:/cache <image> analyze /data/contrato.pdf`, noting the slow first run (model download).
-   - PyPI: "planned; not yet published."
-   - Tick Sprint 5 fully done in the roadmap (web demo + packaging), leaving Sprint 6.
-   - `ARCHITECTURE.md`: a short note that this is the self-host packaging of the
-     two-layer split (local fastembed), distinct from the Vercel demo (hosted Voyage).
+### 0. Make the package self-contained (the one scoped, behavior-preserving core change)
+
+- Move `data/kb/codigo_civil.yaml` + `data/kb/patrones.yaml` → **`src/arras_ai/kb_data/`**
+  (inside the package). (`data/evals/casos.yaml` is a dev-only eval fixture and
+  **stays** at repo root — it is not part of the installed package.)
+- `src/arras_ai/rag/knowledge_base.py`: change the default KB directory from
+  `parents[3]/data/kb` to the packaged location, resolved via
+  `importlib.resources.files("arras_ai") / "kb_data"` (as a `Path` — `arras_ai` is a
+  regular filesystem package). Same YAML, same schema, same behavior; only the source
+  location + resolution changes. `from_data_dir(path)` is unchanged.
+- `pyproject.toml`: ensure the `*.yaml` under `src/arras_ai/kb_data/` are included in
+  the built wheel (hatchling includes files under the package by default; verify by
+  inspecting the wheel).
+- Update the references that hard-coded `data/kb`: the tests that build a KB from an
+  explicit `data/kb` path (`tests/test_rag_knowledge_base.py`, the `citar` test in
+  `tests/test_riesgos.py`) switch to the new packaged location (or the default), and
+  `vercel.json` `includeFiles` simplifies from `{src,data}/**` to `src/**` (the demo's
+  KB now resolves inside the package; `data/` is no longer needed at runtime).
+- Verify: full `uv run pytest` green; `uv run python scripts/build_kb.py` still builds;
+  `uv build` produces a wheel that **contains** `arras_ai/kb_data/*.yaml`.
+
+### 1. Dockerfile + `.dockerignore`
+
+- Base `python:3.12-slim`; `pip install .` (now self-contained — installs the `arras`
+  console script + deps incl. local `fastembed`). `WORKDIR /data`; `ENTRYPOINT ["arras"]`.
+- Route large caches into a mountable volume: `HOME=/cache`, `HF_HOME=/cache/hf`
+  (fastembed pulls weights via the HF hub), `ARRAS_KB_INDEX_DIR=/cache/kb_index`
+  (existing env seam). First run downloads the model + builds the index into the volume.
+  (The implementer confirms the exact cache env fastembed honors; the first real run —
+  user-side — validates it.)
+- `.dockerignore`: exclude `web/`, `node_modules`, `.git`, `tests/`, `docs/`,
+  `.superpowers/`, `data/evals/`, `.arras_kb_index/`, `dist/`, `__pycache__`, `.venv`, `.vercel`.
+
+### 2. CI `docker` job
+
+`docker build` the image (no run, no push) as a Dockerfile regression guard; the
+existing `check` and `web` jobs unchanged.
+
+### 3. Docs (`README.md`, `ARCHITECTURE.md`)
+
+- README "Install / self-host": pipx (`pipx install git+https://github.com/luispique/arras-ai`,
+  then `export ANTHROPIC_API_KEY=... && arras analyze contrato.pdf`); Docker
+  (`docker run --rm -e ANTHROPIC_API_KEY=... -v "$PWD:/data" -v arras-cache:/cache <image> analyze /data/contrato.pdf`,
+  noting the slow first run); PyPI "planned; not yet published"; tick Sprint 5 complete
+  in the roadmap (web demo + packaging), leaving Sprint 6.
+- ARCHITECTURE: a short note — the KB now ships as package data (self-contained
+  install), and this is the self-host packaging of the two-layer split (local
+  fastembed), distinct from the Vercel demo (hosted Voyage).
 
 ## Usage (documented)
 
 ```bash
-docker run --rm \
-  -e ANTHROPIC_API_KEY=sk-ant-... \
+docker run --rm -e ANTHROPIC_API_KEY=sk-ant-... \
   -v "$PWD:/data" -v arras-cache:/cache \
   ghcr.io/luispique/arras-ai analyze /data/contrato.pdf
 ```
-First run downloads the fastembed model into the `arras-cache` volume and builds the
-KB index there; later runs reuse both.
 
 ## Verification
 
-- **Local (this sprint):** `uv build` produces a wheel; install it into a throwaway
-  venv and confirm `arras --version` / `arras --help` work from the installed console
-  script (validates the packaged entry point + that deps resolve). Python suite stays
-  green; ruff/mypy unaffected (no core changes).
-- **CI:** the new `docker` job validates that the `Dockerfile` **builds** on the
-  runner.
-- **User-gated (documented):** a real `docker run ... analyze` (needs an Anthropic key
-  + the ~2 GB model download) and the actual GHCR image publish are maintainer steps;
-  Docker is not available in the dev environment, so the build is validated by CI, not
-  locally.
+- **Local:** full `uv run pytest` green; `uv build` wheel contains `arras_ai/kb_data/*.yaml`;
+  install the wheel into a throwaway venv and confirm `arras --version`/`--help` work
+  from the installed console script (validates the self-contained entry point).
+  ruff/mypy clean.
+- **CI:** the new `docker` job validates the `Dockerfile` **builds**.
+- **User-gated (documented):** a real `docker run ... analyze` (Anthropic key + ~2 GB
+  model download) and the GHCR image publish are maintainer steps; Docker is unavailable
+  in the dev environment, so the build is validated by CI, not locally.
 
 ## Success criteria
 
-- `uv build` + wheel install exposes a working `arras` console script (local check).
-- CI `docker build` succeeds (Dockerfile validated on the runner).
-- The core (`src/arras_ai/`) is unchanged; only new files (`Dockerfile`,
-  `.dockerignore`) + CI + docs.
-- README documents pipx + Docker self-host clearly; roadmap shows Sprint 5 complete.
+- The package is self-contained: a wheel install exposes a working `arras` whose
+  `analyze` path can locate the KB (no repo checkout needed). Verified via wheel-contents
+  + venv install locally; full analyze is user-gated (needs a key + model).
+- CI `docker build` succeeds. `src/arras_ai/` change is limited to the KB relocation +
+  path resolution (behavior-preserving). README documents pipx + Docker; roadmap shows
+  Sprint 5 complete.
 
-## Future (recorded)
+## Non-goals / future
 
-- PyPI publish (`pip install arras-ai`) via a release workflow — needs the maintainer's
-  PyPI account/token.
+- PyPI publish (`pip install arras-ai`) — needs the maintainer's PyPI account/token.
 - Sprint 6: MCP server + polish + public launch.
