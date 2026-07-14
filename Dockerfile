@@ -7,10 +7,10 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip install --no-cache-dir .
 
-# Route large caches (fastembed model via the HF hub + the KB index) into a mountable
-# volume so they persist across runs. First run downloads the model (~large) once.
+# Route large caches (fastembed model and KB index) into a mountable
+# volume so they persist across runs. First run downloads the model (~2GB) once.
 ENV HOME=/cache \
-    HF_HOME=/cache/hf \
+    FASTEMBED_CACHE_PATH=/cache/fastembed \
     ARRAS_KB_INDEX_DIR=/cache/kb_index
 RUN mkdir -p /cache && chmod 0777 /cache
 
