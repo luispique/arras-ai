@@ -33,4 +33,5 @@ Thumbs.db
 # Web demo
 web/node_modules/
 web/dist/
+web/.astro/
 .vercel/
