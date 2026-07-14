@@ -230,6 +230,35 @@ a prompt change. The new `test_eval_harness_runs_on_a_case`
 inheriting the module's `skipif(not ANTHROPIC_API_KEY)` gate so CI without a
 key stays green.
 
+## Sprint 5: the web demo (two-layer split)
+
+Sprint 5 adds an Astro frontend and a Vercel Python function (`web/`, `api/analyze.py`)
+without touching `src/arras_ai/`. The guiding decision is a **two-layer split**: the
+self-host core keeps its existing defaults, and the hosted demo overrides only what
+serverless requires, through interfaces Sprint 3 already defined.
+
+The clearest payoff is `EmbeddingModel`. Self-hosting still defaults to local
+`fastembed` — no API key, fully offline. The Vercel demo instead sets
+`ARRAS_EMBEDDING_PROVIDER=voyage`: no 2 GB model download on a read-only,
+ephemeral filesystem, and no new code path — `make_embedding_model` already
+dispatched on the provider. `ARRAS_KB_INDEX_DIR=/tmp/arras_kb_index` similarly
+reuses the existing index-directory setting to build the 5-pattern LanceDB
+index lazily in `/tmp` on first request, the only writable location in a
+Vercel Function.
+
+`api/analyze.py` stays a thin HTTP shim: `handler.do_POST` parses the request
+and delegates to `procesar()`, a pure function (payload in, `(status, body)`
+out) that validates input, enforces caps (30,000 chars of text, or a 5 MB /
+15-page PDF), and maps `AnalysisError`/`PdfExtractionError` to 4xx and any
+other exception to a generic 502 — never leaking internals. `procesar` takes
+`analizar` as a parameter so tests exercise it without a network call, while
+production wires it to the unchanged `analizar_texto` from `agent.py`.
+
+Cost is bounded three ways: the input caps above, a per-IP rate-limit rule on
+`/api/analyze` in the Vercel Firewall, and a monthly spend limit set on the
+Anthropic API key itself — the last line of defense if the first two are
+bypassed.
+
 ## Testing strategy
 
 - **Unit tests** (offline, default `pytest` run): schema validation, PDF

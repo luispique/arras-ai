@@ -29,3 +29,9 @@ Thumbs.db
 
 # Built RAG index
 .arras_kb_index/
+
+# Web demo
+web/node_modules/
+web/dist/
+web/.astro/
+.vercel/

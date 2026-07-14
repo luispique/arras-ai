@@ -62,6 +62,11 @@ plus the concrete `alta`-severity risk (no financing contingency — the buyer
 **can lose the €10,000** if the bank denies the mortgage) and `media`-severity
 risks (no deadline for the deed) that explain why.
 
+## Try it
+
+Live demo: _coming soon_ — see [`web/README.md`](web/README.md) to run it
+locally or deploy your own.
+
 ---
 
 ## The problem
@@ -304,7 +309,7 @@ boundaries are drawn so each of the following slots in without a rewrite:
 - [x] **Sprint 4 — Evals.** A ground-truth dataset and a hybrid harness
       (deterministic metrics + LLM-as-judge) to measure accuracy and prevent
       regressions.
-- [ ] **Sprint 5 — Interfaces.** Web UI and a packaged CLI; deployment.
+- [~] **Sprint 5 — Interfaces.** Web demo (done); CLI/Docker packaging (next).
 - [ ] **Sprint 6 — MCP server.** Expose the analysis as an MCP tool, plus public
       launch.
 
