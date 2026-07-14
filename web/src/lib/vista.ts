@@ -78,7 +78,12 @@ export function aVista(informe: Informe): VistaModel {
       citas: r.referencias.map(cita),
     }));
 
+  const partes = a.partes.length
+    ? a.partes.map((p) => `${p.rol}: ${p.nombre ?? "—"}`).join(", ")
+    : "—";
+
   const datos = [
+    { label: "Partes", valor: partes },
     { label: "Precio total", valor: dinero(a.importes.precio_total, a.importes.moneda) },
     { label: "Importe arras", valor: dinero(a.importes.importe_arras, a.importes.moneda) },
     { label: "Dirección", valor: a.inmueble.direccion ?? "—" },
