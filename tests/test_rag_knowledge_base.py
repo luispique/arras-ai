@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import importlib.resources
 from pathlib import Path
 
 import pytest
@@ -10,11 +11,19 @@ import pytest
 from arras_ai.models import CategoriaRiesgo
 from arras_ai.rag.knowledge_base import KnowledgeBase
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "kb"
+DATA_DIR = Path(str(importlib.resources.files("arras_ai") / "kb_data"))
 
 
 def _kb() -> KnowledgeBase:
     return KnowledgeBase.from_data_dir(DATA_DIR, index_dir=Path("/tmp/unused-index"))
+
+
+def test_default_kb_dir_is_packaged() -> None:
+    # The KB ships inside the package, so a real install (no repo checkout) finds it.
+    assert (DATA_DIR / "codigo_civil.yaml").is_file()
+    assert (DATA_DIR / "patrones.yaml").is_file()
+    kb = KnowledgeBase.from_data_dir(DATA_DIR, index_dir=Path("/tmp/unused-index"))
+    assert kb.get_articulo("1454") is not None
 
 
 def test_loads_articulos_and_patrones() -> None:

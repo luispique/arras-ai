@@ -125,12 +125,13 @@ def test_confidence_at_threshold_is_not_flagged() -> None:
 
 
 def test_citar_maps_category_to_fundamentos() -> None:
+    import importlib.resources
     from pathlib import Path
 
     from arras_ai.rag.knowledge_base import KnowledgeBase
     from arras_ai.riesgos import citar
 
-    data_dir = Path(__file__).resolve().parent.parent / "data" / "kb"
+    data_dir = Path(str(importlib.resources.files("arras_ai") / "kb_data"))
     kb = KnowledgeBase.from_data_dir(data_dir, index_dir=Path("/tmp/unused"))
 
     cc_fund = citar(CategoriaRiesgo.tipo_ambiguo, kb.articulos, kb.patrones)

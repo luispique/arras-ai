@@ -4,7 +4,7 @@
   "outputDirectory": "web/dist",
   "functions": {
     "api/analyze.py": {
-      "includeFiles": "{src,data}/**"
+      "includeFiles": "src/**"
     }
   }
 }
