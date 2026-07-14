@@ -95,3 +95,12 @@ def test_pdf_extraction_error_maps_422(monkeypatch: pytest.MonkeyPatch) -> None:
     payload = {"pdf_base64": base64.b64encode(b"%PDF-1.4 mini").decode()}
     status, body = analyze.procesar(payload, analizar=_ok)
     assert status == 422
+
+
+def test_corrupt_pdf_maps_422() -> None:
+    import base64 as _b64
+
+    corrupt = _b64.b64encode(b"%PDF-1.4 esto no es un PDF de verdad").decode()
+    status, body = analyze.procesar({"pdf_base64": corrupt}, analizar=_ok)
+    assert status == 422
+    assert "error" in body

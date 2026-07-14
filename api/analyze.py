@@ -34,13 +34,22 @@ def extraer_texto_pdf(data: bytes) -> str:
     import pdfplumber
 
     paginas: list[str] = []
-    with pdfplumber.open(io.BytesIO(data)) as pdf:
-        if len(pdf.pages) > MAX_PDF_PAGINAS:
-            raise PdfExtractionError(f"El PDF tiene demasiadas páginas (máximo {MAX_PDF_PAGINAS}).")
-        for page in pdf.pages:
-            texto = page.extract_text() or ""
-            if texto.strip():
-                paginas.append(texto)
+    try:
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            if len(pdf.pages) > MAX_PDF_PAGINAS:
+                raise PdfExtractionError(
+                    f"El PDF tiene demasiadas páginas (máximo {MAX_PDF_PAGINAS})."
+                )
+            for page in pdf.pages:
+                texto = page.extract_text() or ""
+                if texto.strip():
+                    paginas.append(texto)
+    except PdfExtractionError:
+        raise
+    except Exception as exc:  # pdfminer raises a variety of low-level errors
+        raise PdfExtractionError(
+            "No se pudo leer el PDF (¿archivo dañado o no es un PDF?)."
+        ) from exc
     full = "\n\n".join(paginas).strip()
     if not full:
         raise PdfExtractionError("No se pudo extraer texto del PDF (¿es un escaneo sin OCR?).")
