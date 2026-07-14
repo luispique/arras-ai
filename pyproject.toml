@@ -31,6 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 openai = ["openai>=1.40"]
 voyage = ["voyageai>=0.2"]
+mcp = ["mcp>=1.2"]
 
 [project.urls]
 Homepage = "https://github.com/luispique/arras-ai"
@@ -39,6 +40,7 @@ Issues = "https://github.com/luispique/arras-ai/issues"
 
 [project.scripts]
 arras = "arras_ai.cli:app"
+arras-mcp = "arras_ai.mcp_server:main"
 
 [dependency-groups]
 dev = [

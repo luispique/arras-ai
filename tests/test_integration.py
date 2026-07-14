@@ -83,6 +83,16 @@ def test_agente_risks_carry_citations(fixtures_dir: Path) -> None:
     assert fin.referencias  # at least one Fundamento attached
 
 
+def test_mcp_tool_analyzes_real_contract() -> None:
+    from arras_ai import mcp_server
+    from arras_ai.evals.dataset import load_casos
+
+    caso = next(c for c in load_casos() if c.id == "penitenciales_impecable")
+    out = mcp_server.analizar_contrato_arras(caso.texto)
+    assert out["analisis"]["tipo_arras"] == "penitenciales"
+    assert "nivel_riesgo_global" in out
+
+
 def test_eval_harness_runs_on_a_case() -> None:
     from arras_ai.config import load_settings
     from arras_ai.evals.dataset import load_casos

@@ -161,8 +161,8 @@ class KnowledgeBase:
             return
         # Index already built — verify it used the SAME embedding model AND the SAME
         # source patterns, else the query vectors will not match the stored ones (model
-        # change) or the stored ones no longer reflect data/kb/patrones.yaml (a source
-        # edit), and retrieval is garbage or stale either way.
+        # change) or the stored ones no longer reflect src/arras_ai/kb_data/patrones.yaml
+        # (a source edit), and retrieval is garbage or stale either way.
         if not self._meta_path().is_file():
             raise RuntimeError(
                 "KB index has no metadata; rebuild it with `uv run python scripts/build_kb.py`."

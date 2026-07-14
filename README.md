@@ -1,5 +1,7 @@
 # arras-ai
 
+[![CI](https://github.com/luispique/arras-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/luispique/arras-ai/actions/workflows/ci.yml)
+
 **Read your Spanish *contrato de arras* before you sign it.** `arras-ai` takes a
 PDF of an earnest-money property contract, extracts the facts that matter, and
 tells you which of the three legal modalities it is — grounded in the articles of
@@ -213,6 +215,27 @@ The first run is slow — it downloads the embedding model into the
 
 **PyPI**: planned; not yet published.
 
+## Use as an MCP server
+
+`arras-ai` can also run as an [MCP](https://modelcontextprotocol.io/) server over
+stdio, so Claude Desktop, Claude Code, or any other MCP client can call it as a
+tool:
+
+```bash
+pipx install 'arras-ai[mcp] @ git+https://github.com/luispique/arras-ai'
+```
+
+Add it to your client's MCP config (e.g. `claude_desktop_config.json`):
+
+```json
+{ "mcpServers": { "arras-ai": { "command": "arras-mcp", "env": { "ANTHROPIC_API_KEY": "sk-ant-..." } } } }
+```
+
+It exposes two tools, `analizar_contrato_arras` (text in) and
+`analizar_contrato_pdf` (a local PDF path in) — both run the same self-host core
+with local `fastembed` embeddings, entirely on your machine. Same disclaimer as
+everywhere else: not legal advice.
+
 ## How it works
 
 A LangGraph agent (`agent.py`) drives a 4-node pipeline from PDF to risk report:
@@ -340,8 +363,8 @@ boundaries are drawn so each of the following slots in without a rewrite:
       (deterministic metrics + LLM-as-judge) to measure accuracy and prevent
       regressions.
 - [x] **Sprint 5 — Interfaces.** Web demo and CLI/Docker packaging, both done.
-- [ ] **Sprint 6 — MCP server.** Expose the analysis as an MCP tool, plus public
-      launch.
+- [x] **Sprint 6 — MCP server.** Expose the analysis as an MCP tool, plus public
+      launch. **All six sprints complete.**
 
 Scope stays narrow on purpose: **only contratos de arras**, no general
 conveyancing, rentals, or *notas simples*. Specialisation over breadth.
