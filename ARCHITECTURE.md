@@ -273,6 +273,30 @@ under `ARRAS_KB_INDEX_DIR` (and the model itself under
 as opposed to the Vercel demo's hosted Voyage embeddings and ephemeral `/tmp`
 index described above.
 
+## Sprint 6: the MCP server
+
+Sprint 6 exposes the analysis over the [Model Context Protocol](https://modelcontextprotocol.io/),
+so any MCP client (Claude Desktop, Claude Code) can call it as a tool, without
+touching `src/arras_ai/` beyond the new `mcp_server.py` module.
+
+`mcp_server.py` follows the same **lazy-import** pattern Sprint 3 used for the
+optional embedding adapters: `analizar_contrato_arras` and `analizar_contrato_pdf`
+are pure functions — thin wrappers over the unchanged `analizar_texto` (`agent.py`)
+and `extract_text` (`pdf.py`) that map their domain errors (`AnalysisError`,
+`PdfExtractionError`) to `ValueError` — with no dependency on the `mcp` package,
+so they're importable and unit-testable in the base install. `build_server()`
+imports `mcp.server.fastmcp.FastMCP` lazily, registers the two tools, and raises
+a clear, actionable error if the optional `[mcp]` extra isn't installed. `main()`
+(the `arras-mcp` console entry point declared in `pyproject.toml`) just builds the
+server and runs it over stdio.
+
+Because the tools call the same core the CLI does, they inherit its self-host
+defaults: local `fastembed` embeddings, no API key beyond `ANTHROPIC_API_KEY`,
+fully offline after the first model download. There is no server-hosted layer
+here — the MCP server is a third self-host consumption path alongside `arras`
+(CLI) and Docker, not a variant of the Sprint 5 web demo's hosted-embeddings
+layer.
+
 ## Testing strategy
 
 - **Unit tests** (offline, default `pytest` run): schema validation, PDF
@@ -297,5 +321,5 @@ is the core abstraction and type errors in it would be silent data bugs.
 
 LangGraph agent (Sprint 2), vector store / RAG (delivered in Sprint 3), eval
 harness with ground truth (delivered in Sprint 4), web frontend (Sprint 5), and
-MCP server (Sprint 6). The module boundaries above are drawn so each can be
-added without a rewrite.
+MCP server (delivered in Sprint 6). The module boundaries above are drawn so
+each can be added without a rewrite.

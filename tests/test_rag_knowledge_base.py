@@ -147,7 +147,7 @@ def test_ensure_index_raises_on_patrones_hash_mismatch(  # type: ignore[no-untyp
     )
     kb.ensure_index()  # builds the index and writes meta.json with the current hash
 
-    # Simulate editing data/kb/patrones.yaml: same index dir/model, but a pattern's
+    # Simulate editing src/arras_ai/kb_data/patrones.yaml: same index dir/model, but a pattern's
     # text has changed, so texto_indexable() differs and the patrones_hash no longer
     # matches what is stored in meta.json.
     edited_patrones = copy.deepcopy(kb.patrones)
