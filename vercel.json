@@ -1,10 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd web && npm install && npm run build",
-  "outputDirectory": "web/dist",
+  "installCommand": "pip install -r api/requirements.txt",
   "functions": {
-    "api/analyze.py": {
-      "includeFiles": "src/**"
+    "api/**/*.py": {
+      "excludeFiles": "{web/**,tests/**,docs/**,.github/**,node_modules/**,dist/**,.venv/**,__pycache__/**}"
     }
   }
 }

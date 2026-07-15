@@ -1,8 +1,12 @@
-"""Vercel Python function: POST /api/analyze.
+"""Vercel Python API: a FastAPI app exposing POST /api/analyze.
 
-Thin HTTP wrapper over a pure `procesar()` (validation + caps + error mapping) that
-calls the unchanged Python core. The demo configures hosted Voyage embeddings and a
-/tmp index via environment variables; the core is otherwise untouched.
+Deployed as its own Vercel project (Root Directory = repo root); the entrypoint is
+`api.index:app` (see `[tool.vercel]` in pyproject.toml). The Astro frontend is a
+separate Vercel project (Root Directory = web) that proxies `/api/*` here via a
+rewrite, so the browser stays same-origin (no CORS). `app` is a thin FastAPI wrapper
+over a pure `procesar()` (validation + caps + error mapping) that calls the unchanged
+Python core. The demo configures a hosted embedding provider + a /tmp index via env
+vars; the core is otherwise untouched.
 """
 
 from __future__ import annotations
@@ -14,8 +18,10 @@ import json
 import os
 import sys
 from collections.abc import Callable
-from http.server import BaseHTTPRequestHandler
 from typing import Any
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 # The repo `src/` is bundled with the function; make `arras_ai` importable.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -57,7 +63,8 @@ def extraer_texto_pdf(data: bytes) -> str:
 
 
 def _analizar_real(texto: str) -> InformeArras:
-    # The core resolves the Voyage provider + /tmp index from the environment.
+    # The core resolves the embedding provider (ARRAS_EMBEDDING_PROVIDER) + the
+    # /tmp index dir (ARRAS_KB_INDEX_DIR) from the environment set on the deploy.
     from arras_ai.agent import analizar_texto
 
     return analizar_texto(texto)
@@ -103,36 +110,33 @@ def procesar(
     return 200, json.loads(informe.model_dump_json())
 
 
-class handler(BaseHTTPRequestHandler):  # noqa: N801 (Vercel Python function entry point)
-    def _send(self, status: int, body: dict[str, Any]) -> None:
-        payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self.wfile.write(payload)
+app = FastAPI(title="arras-ai")
 
-    def do_POST(self) -> None:  # noqa: N802 (BaseHTTPRequestHandler API)
-        if "application/json" not in (self.headers.get("Content-Type") or ""):
-            self._send(400, {"error": "Content-Type debe ser application/json."})
-            return
-        try:
-            length = int(self.headers.get("Content-Length") or 0)
-        except ValueError:
-            length = 0
-        if length <= 0 or length > MAX_PDF_BYTES * 2:
-            self._send(413, {"error": "Cuerpo de la petición ausente o demasiado grande."})
-            return
-        try:
-            payload = json.loads(self.rfile.read(length))
-        except (json.JSONDecodeError, ValueError):
-            self._send(400, {"error": "JSON inválido."})
-            return
-        if not isinstance(payload, dict):
-            self._send(400, {"error": "El cuerpo debe ser un objeto JSON."})
-            return
-        status, body = procesar(payload, analizar=_analizar_real)
-        self._send(status, body)
 
-    def do_GET(self) -> None:  # noqa: N802
-        self._send(405, {"error": "Usa POST para analizar."})
+async def _handle(request: Request) -> JSONResponse:
+    body_bytes = await request.body()
+    if len(body_bytes) > MAX_PDF_BYTES * 2:
+        return JSONResponse(status_code=413, content={"error": "Cuerpo demasiado grande."})
+    try:
+        payload = json.loads(body_bytes)
+    except (json.JSONDecodeError, ValueError):
+        return JSONResponse(status_code=400, content={"error": "JSON inválido."})
+    if not isinstance(payload, dict):
+        return JSONResponse(
+            status_code=400, content={"error": "El cuerpo debe ser un objeto JSON."}
+        )
+    status, result = procesar(payload, analizar=_analizar_real)
+    return JSONResponse(status_code=status, content=result)
+
+
+# The frontend rewrite forwards `/api/*` here preserving the prefix, so the app
+# is reached at `/api/analyze`. The bare `/analyze` is also registered for direct
+# calls to the API deployment (curl, health checks) without the prefix.
+@app.post("/api/analyze")
+async def analyze_api(request: Request) -> JSONResponse:
+    return await _handle(request)
+
+
+@app.post("/analyze")
+async def analyze_bare(request: Request) -> JSONResponse:
+    return await _handle(request)
