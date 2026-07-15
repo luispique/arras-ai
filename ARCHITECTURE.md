@@ -233,27 +233,37 @@ key stays green.
 
 ## Sprint 5: the web demo (two-layer split)
 
-Sprint 5 adds an Astro frontend and a Vercel Python function (`web/`, `api/analyze.py`)
+Sprint 5 adds an Astro frontend and a FastAPI Python service (`web/`, `api/index.py`)
 without touching `src/arras_ai/`. The guiding decision is a **two-layer split**: the
 self-host core keeps its existing defaults, and the hosted demo overrides only what
 serverless requires, through interfaces Sprint 3 already defined.
 
 The clearest payoff is `EmbeddingModel`. Self-hosting still defaults to local
 `fastembed` — no API key, fully offline. The Vercel demo instead sets
-`ARRAS_EMBEDDING_PROVIDER=voyage`: no 2 GB model download on a read-only,
+`ARRAS_EMBEDDING_PROVIDER=openai`: no 2 GB model download on a read-only,
 ephemeral filesystem, and no new code path — `make_embedding_model` already
 dispatched on the provider. `ARRAS_KB_INDEX_DIR=/tmp/arras_kb_index` similarly
 reuses the existing index-directory setting to build the 5-pattern LanceDB
 index lazily in `/tmp` on first request, the only writable location in a
 Vercel Function.
 
-`api/analyze.py` stays a thin HTTP shim: `handler.do_POST` parses the request
-and delegates to `procesar()`, a pure function (payload in, `(status, body)`
+The repo deploys as two **Vercel Services** declared in the root `vercel.json`:
+`web` (the Astro app) and `api` (the FastAPI app, entrypoint `api.index:app`),
+with a rewrite routing `/api/*` to `api` and everything else to `web`. This split
+is deliberate: because the repo root is itself a Python package (`pyproject.toml`),
+a single-project deploy made Vercel try to treat the whole repo as one Python app.
+Declaring `api` as its own service with `root: "."` scopes the Python build cleanly
+while the frontend builds independently.
+
+`api/index.py` stays a thin HTTP shim: the FastAPI routes (`/api/analyze` and the
+bare `/analyze`, since the service rewrite may or may not keep the prefix) read the
+body and delegate to `procesar()`, a pure function (payload in, `(status, body)`
 out) that validates input, enforces caps (30,000 chars of text, or a 5 MB /
 15-page PDF), and maps `AnalysisError`/`PdfExtractionError` to 4xx and any
 other exception to a generic 502 — never leaking internals. `procesar` takes
-`analizar` as a parameter so tests exercise it without a network call, while
-production wires it to the unchanged `analizar_texto` from `agent.py`.
+`analizar` as a parameter so tests exercise it (via `procesar` directly and a
+FastAPI `TestClient`) without a network call, while production wires it to the
+unchanged `analizar_texto` from `agent.py`.
 
 Cost is bounded three ways: the input caps above, a per-IP rate-limit rule on
 `/api/analyze` in the Vercel Firewall, and a monthly spend limit set on the
@@ -270,7 +280,7 @@ checkout of the source repo. This is the self-host half of the Sprint 5
 two-layer split: local `fastembed` embeddings, a git-ignored index cached
 under `ARRAS_KB_INDEX_DIR` (and the model itself under
 `FASTEMBED_CACHE_PATH`, both pointed at a mounted volume in the Docker image),
-as opposed to the Vercel demo's hosted Voyage embeddings and ephemeral `/tmp`
+as opposed to the Vercel demo's hosted OpenAI embeddings and ephemeral `/tmp`
 index described above.
 
 ## Sprint 6: the MCP server
