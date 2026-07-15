@@ -61,12 +61,14 @@ packages = ["src/arras_ai"]
 
 # Vercel deploy (web demo): the repo root is a Python package, so Vercel's Python
 # runtime treats the whole repo as one app and finds several candidate entrypoints
-# (src/arras_ai/__main__.py, cli.py, api/index.py). Name the one we deploy — the
-# FastAPI `app` in api/index.py — so the "No python entrypoint found" build error
-# is resolved. Only the standalone Python API project (root = repo root) uses this;
-# the Astro frontend deploys as a separate Vercel project with Root Directory = web.
+# (src/arras_ai/__main__.py, cli.py, main.py). Name the one we deploy — the FastAPI
+# `app` in main.py — so the "No python entrypoint found" build error is resolved.
+# main.py is at the repo root (not under api/) so Vercel deploys it as a single
+# catch-all FastAPI function, not an api/*.py per-file serverless function. Only the
+# standalone Python API project (root = repo root) uses this; the Astro frontend
+# deploys as a separate Vercel project with Root Directory = web.
 [tool.vercel]
-entrypoint = "api.index:app"
+entrypoint = "main:app"
 
 [tool.ruff]
 line-length = 100

@@ -1,12 +1,16 @@
 """Vercel Python API: a FastAPI app exposing POST /api/analyze.
 
 Deployed as its own Vercel project (Root Directory = repo root); the entrypoint is
-`api.index:app` (see `[tool.vercel]` in pyproject.toml). The Astro frontend is a
-separate Vercel project (Root Directory = web) that proxies `/api/*` here via a
-rewrite, so the browser stays same-origin (no CORS). `app` is a thin FastAPI wrapper
-over a pure `procesar()` (validation + caps + error mapping) that calls the unchanged
-Python core. The demo configures a hosted embedding provider + a /tmp index via env
-vars; the core is otherwise untouched.
+`main:app` (see `[tool.vercel]` in pyproject.toml). The file lives at the repo root
+(not under `api/`) on purpose: Vercel treats `api/*.py` as individual serverless
+functions mounted at their own path, whereas a root-level entrypoint deploys the
+FastAPI app as a single catch-all function that receives the full request path — so
+its `/api/analyze` route is reachable. The Astro frontend is a separate Vercel project
+(Root Directory = web) that proxies `/api/*` here via a rewrite, so the browser stays
+same-origin (no CORS). `app` is a thin FastAPI wrapper over a pure `procesar()`
+(validation + caps + error mapping) that calls the unchanged Python core. The demo
+configures a hosted embedding provider + a /tmp index via env vars; the core is
+otherwise untouched.
 """
 
 from __future__ import annotations
@@ -24,7 +28,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 # The repo `src/` is bundled with the function; make `arras_ai` importable.
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+# This file lives at the repo root, so `src/` is a direct child.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from arras_ai.analyzer import AnalysisError  # noqa: E402
 from arras_ai.models import InformeArras  # noqa: E402
