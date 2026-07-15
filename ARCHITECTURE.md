@@ -264,7 +264,13 @@ decoupled frontend/API architecture, not a workaround downgrade):
   "api.index:app"` names the FastAPI `app` so the multi-candidate entrypoint error
   goes away. `vercel.json` `functions["api/**/*.py"].excludeFiles` trims `web/`, tests,
   and docs from the function bundle (Python bundles include everything under the root
-  by default).
+  by default). One subtlety: the *core* package's `[project.dependencies]` are the
+  wrong set for serverless — they carry `fastembed` (a ~2 GB model, unused because the
+  demo uses OpenAI embeddings) and omit `fastapi`/`openai` (a dev dep and an optional
+  extra). So `vercel.json` sets `installCommand: "pip install -r api/requirements.txt"`
+  to install a curated runtime set instead of the pyproject deps; `arras_ai` still
+  imports because `api/index.py` puts `src/` on `sys.path` (no pip-install of the
+  package needed).
 
 `api/index.py` stays a thin HTTP shim: the FastAPI routes (`/api/analyze`, plus a bare
 `/analyze` for direct calls) read the body and delegate to `procesar()`, a pure
