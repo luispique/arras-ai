@@ -1,10 +1,12 @@
-"""Vercel Services API: a FastAPI app exposing POST /api/analyze.
+"""Vercel Python API: a FastAPI app exposing POST /api/analyze.
 
-Deployed as the `api` service (see `vercel.json`); the Astro frontend is the `web`
-service and `/api/*` is routed here. `app` is a thin FastAPI wrapper over a pure
-`procesar()` (validation + caps + error mapping) that calls the unchanged Python core.
-The demo configures a hosted embedding provider + a /tmp index via env vars; the core
-is otherwise untouched.
+Deployed as its own Vercel project (Root Directory = repo root); the entrypoint is
+`api.index:app` (see `[tool.vercel]` in pyproject.toml). The Astro frontend is a
+separate Vercel project (Root Directory = web) that proxies `/api/*` here via a
+rewrite, so the browser stays same-origin (no CORS). `app` is a thin FastAPI wrapper
+over a pure `procesar()` (validation + caps + error mapping) that calls the unchanged
+Python core. The demo configures a hosted embedding provider + a /tmp index via env
+vars; the core is otherwise untouched.
 """
 
 from __future__ import annotations
@@ -127,8 +129,9 @@ async def _handle(request: Request) -> JSONResponse:
     return JSONResponse(status_code=status, content=result)
 
 
-# The `/api/(.*)` service rewrite may forward the path with or without the `/api`
-# prefix depending on Vercel's routing; register both so it matches either way.
+# The frontend rewrite forwards `/api/*` here preserving the prefix, so the app
+# is reached at `/api/analyze`. The bare `/analyze` is also registered for direct
+# calls to the API deployment (curl, health checks) without the prefix.
 @app.post("/api/analyze")
 async def analyze_api(request: Request) -> JSONResponse:
     return await _handle(request)

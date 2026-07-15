@@ -247,23 +247,33 @@ reuses the existing index-directory setting to build the 5-pattern LanceDB
 index lazily in `/tmp` on first request, the only writable location in a
 Vercel Function.
 
-The repo deploys as two **Vercel Services** declared in the root `vercel.json`:
-`web` (the Astro app) and `api` (the FastAPI app, entrypoint `api.index:app`),
-with a rewrite routing `/api/*` to `api` and everything else to `web`. This split
-is deliberate: because the repo root is itself a Python package (`pyproject.toml`),
-a single-project deploy made Vercel try to treat the whole repo as one Python app.
-Declaring `api` as its own service with `root: "."` scopes the Python build cleanly
-while the frontend builds independently.
+The repo deploys as **two Vercel projects from the same repository** — a deliberate
+decoupling forced by a real constraint. Because the repo root is itself a Python
+package (`pyproject.toml`), a single-project deploy makes Vercel treat the whole repo
+as one Python app and fail to resolve a single entrypoint. Vercel's own answer to
+"frontend + Python backend in one project" is its permission-gated *Services* feature;
+absent that permission, two projects is the clean, GA path (and is a legitimate
+decoupled frontend/API architecture, not a workaround downgrade):
 
-`api/index.py` stays a thin HTTP shim: the FastAPI routes (`/api/analyze` and the
-bare `/analyze`, since the service rewrite may or may not keep the prefix) read the
-body and delegate to `procesar()`, a pure function (payload in, `(status, body)`
-out) that validates input, enforces caps (30,000 chars of text, or a 5 MB /
-15-page PDF), and maps `AnalysisError`/`PdfExtractionError` to 4xx and any
-other exception to a generic 502 — never leaking internals. `procesar` takes
-`analizar` as a parameter so tests exercise it (via `procesar` directly and a
-FastAPI `TestClient`) without a network call, while production wires it to the
-unchanged `analizar_texto` from `agent.py`.
+- **Frontend project** — Root Directory `web`. Scoping the root to `web/` hides the
+  root `pyproject.toml`, so Vercel detects Astro normally. A `web/vercel.json` rewrite
+  proxies `/api/*` to the API project's domain, keeping the browser same-origin (no
+  CORS).
+- **API project** — Root Directory the repo root. Here the root `pyproject.toml` is
+  correct: this project genuinely *is* the Python app. `[tool.vercel] entrypoint =
+  "api.index:app"` names the FastAPI `app` so the multi-candidate entrypoint error
+  goes away. `vercel.json` `functions["api/**/*.py"].excludeFiles` trims `web/`, tests,
+  and docs from the function bundle (Python bundles include everything under the root
+  by default).
+
+`api/index.py` stays a thin HTTP shim: the FastAPI routes (`/api/analyze`, plus a bare
+`/analyze` for direct calls) read the body and delegate to `procesar()`, a pure
+function (payload in, `(status, body)` out) that validates input, enforces caps
+(30,000 chars of text, or a 5 MB / 15-page PDF), and maps
+`AnalysisError`/`PdfExtractionError` to 4xx and any other exception to a generic 502
+— never leaking internals. `procesar` takes `analizar` as a parameter so tests
+exercise it (via `procesar` directly and a FastAPI `TestClient`) without a network
+call, while production wires it to the unchanged `analizar_texto` from `agent.py`.
 
 Cost is bounded three ways: the input caps above, a per-IP rate-limit rule on
 `/api/analyze` in the Vercel Firewall, and a monthly spend limit set on the
