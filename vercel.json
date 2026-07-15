@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pip install -r api/requirements.txt",
   "functions": {
-    "api/**/*.py": {
+    "main.py": {
       "excludeFiles": "{web/**,tests/**,docs/**,.github/**,node_modules/**,dist/**,.venv/**,__pycache__/**}"
     }
   }

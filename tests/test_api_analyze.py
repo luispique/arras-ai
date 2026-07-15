@@ -20,9 +20,9 @@ from arras_ai.models import (
 )
 from arras_ai.pdf import PdfExtractionError
 
-# api/ is not a package; load the FastAPI module by path.
-_ANALYZE = Path(__file__).resolve().parent.parent / "api" / "index.py"
-_spec = importlib.util.spec_from_file_location("api_index", _ANALYZE)
+# The FastAPI entrypoint is a root-level module; load it by path.
+_ANALYZE = Path(__file__).resolve().parent.parent / "main.py"
+_spec = importlib.util.spec_from_file_location("arras_api_main", _ANALYZE)
 assert _spec and _spec.loader
 analyze = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(analyze)

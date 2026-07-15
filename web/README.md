@@ -8,8 +8,10 @@ The repo deploys as **two Vercel projects from the same repository**:
   root to `web/` hides the repo-root `pyproject.toml`, so Vercel detects Astro cleanly.
   `web/vercel.json` rewrites `/api/*` to the API project's domain (same-origin, no CORS).
 - **API** — a separate Vercel project with **Root Directory = repo root**. The FastAPI
-  app is `api/index.py`; `[tool.vercel] entrypoint = "api.index:app"` in the root
-  `pyproject.toml` tells Vercel which entrypoint to use.
+  app is `main.py` at the repo root; `[tool.vercel] entrypoint = "main:app"` in the root
+  `pyproject.toml` tells Vercel which entrypoint to use. It's at the root (not under
+  `api/`) so Vercel deploys it as a single catch-all app rather than a per-file
+  `api/*.py` serverless function.
 
 Why two projects: the repo root is itself a Python package, so a single-project deploy
 makes Vercel treat the whole repo as one Python app. Vercel's one-project answer for
@@ -44,7 +46,7 @@ frontend rewrite needs the API's domain.
 **A. API project (Python)**
 
 1. New Vercel project → import this repo → **Root Directory = repo root** (default).
-   Vercel detects Python; `[tool.vercel] entrypoint = "api.index:app"` picks the app.
+   Vercel detects Python; `[tool.vercel] entrypoint = "main:app"` picks the app.
 2. Env vars (Production): `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
    `ARRAS_EMBEDDING_PROVIDER=openai`, `ARRAS_KB_INDEX_DIR=/tmp/arras_kb_index`.
 3. In the Anthropic Console, set a **monthly spend limit** on the key (hard cost cap).
