@@ -1,83 +1,222 @@
 ---
 import "../styles/global.css";
 import Analizador from "../components/Analizador.astro";
+
+const anio = 2026;
+const faqs = [
+  {
+    q: "¿Qué es un contrato de arras?",
+    a: "Es el acuerdo previo a la compraventa de un inmueble por el que comprador y vendedor entregan una señal (las arras) y fijan las condiciones. Según su redacción puede ser confirmatorio, penitencial o penal, y cada tipo tiene consecuencias legales y económicas muy distintas.",
+  },
+  {
+    q: "¿Qué diferencia hay entre arras confirmatorias, penitenciales y penales?",
+    a: "En las confirmatorias la señal es un pago a cuenta y ninguna parte puede desistir sin incumplir. En las penitenciales (art. 1454 CC) cualquiera puede desistir: el comprador pierde las arras y el vendedor las devuelve duplicadas. En las penales la señal funciona como cláusula penal ante el incumplimiento.",
+  },
+  {
+    q: "¿arras-ai sustituye a un abogado?",
+    a: "No. Es una herramienta de apoyo que interpreta el contrato de forma automática y puede equivocarse. Antes de firmar o actuar, consulta siempre con un abogado o notario.",
+  },
+  {
+    q: "¿Qué pasa con mis datos personales?",
+    a: "No salen. Los identificadores (NIF, IBAN, email, teléfono) y los nombres detectables se eliminan del texto en tu servidor antes de enviarlo para el análisis. Nada personal se almacena ni se devuelve.",
+  },
+];
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>arras-ai — analiza tu contrato de arras</title>
+    <title>arras-ai — Analiza tu contrato de arras con IA, gratis</title>
     <meta
       name="description"
-      content="Analiza un contrato de arras: detecta el tipo, extrae los datos clave y señala los riesgos, con referencias al Código Civil."
+      content="Sube tu contrato de arras y descubre en segundos qué tipo es (confirmatorias, penitenciales o penales), sus datos clave y sus riesgos, con referencias al Código Civil. Gratis y privado."
     />
+    <meta name="robots" content="index,follow" />
+    <meta property="og:title" content="arras-ai — Analiza tu contrato de arras con IA" />
+    <meta
+      property="og:description"
+      content="Tipo de arras, datos clave y riesgos con referencias al Código Civil. Gratis, privado, en segundos."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Kameron:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
-    <!-- Top navigation: 56px, sits on the canvas, no border-radius. -->
-    <nav class="border-b border-hairline-soft">
-      <div
-        class="mx-auto flex h-14 max-w-content items-center justify-between px-4 sm:px-6"
-      >
-        <a href="/" class="flex items-center gap-2 font-medium tracking-tighter">
-          <span
-            class="grid h-6 w-6 place-items-center rounded-md bg-ink text-[13px] font-semibold text-white"
-            >a</span
-          >
+    <!-- Frosted, warm-tinted nav -->
+    <nav class="frosted sticky top-0 z-30 border-b border-ink-muted/30">
+      <div class="mx-auto flex h-14 max-w-content items-center justify-between px-5 sm:px-8">
+        <a href="/" class="flex items-center gap-2 font-serif text-lg tracking-tighter">
+          <span class="grid h-6 w-6 place-items-center rounded-md bg-ink text-[13px] font-sans font-semibold text-surface">a</span>
           arras-ai
         </a>
-        <a
-          href="https://github.com/luispique/arras-ai"
-          class="text-sm text-ink-muted transition-colors hover:text-ink"
-          rel="noopener"
-          target="_blank">GitHub</a
-        >
+        <div class="flex items-center gap-5 text-sm">
+          <a href="#tipos" class="hidden text-ink-mid transition-colors hover:text-ink sm:inline">Tipos de arras</a>
+          <a href="#como" class="hidden text-ink-mid transition-colors hover:text-ink sm:inline">Cómo funciona</a>
+          <a href="https://github.com/luispique/arras-ai" rel="noopener" target="_blank" class="text-ink-mid transition-colors hover:text-ink">GitHub</a>
+          <a href="#analizar" class="rounded-pill bg-ink px-4 py-2 font-medium text-surface transition-opacity hover:opacity-90">Analizar</a>
+        </div>
       </div>
     </nav>
 
-    <main class="mx-auto max-w-content px-4 pb-24 sm:px-6">
-      <!-- Hero -->
-      <header class="mx-auto max-w-2xl pt-16 pb-10 text-center sm:pt-24">
-        <p class="mb-4 text-sm font-medium tracking-tight text-ink-muted">
+    <!-- Hero -->
+    <header class="relative overflow-hidden">
+      <div class="pointer-events-none absolute inset-0 -z-10">
+        <div class="hero-blob absolute left-1/2 top-8 h-[520px] w-[820px] max-w-[130%] -translate-x-1/2"></div>
+        <div class="grain absolute inset-0"></div>
+      </div>
+      <div class="mx-auto max-w-content px-5 pb-16 pt-20 text-center sm:px-8 sm:pt-28">
+        <p class="mb-5 text-sm font-medium uppercase tracking-label text-ink-mid">
           Análisis de contratos de arras
         </p>
-        <h1
-          class="text-4xl leading-[1.05] tracking-tightest sm:text-6xl"
-        >
-          Entiende tu contrato de arras en segundos
+        <h1 class="mx-auto max-w-4xl font-serif text-[2.6rem] leading-[1.05] tracking-tightest sm:text-[4.6rem]">
+          Entiende tu contrato de arras antes de firmar
         </h1>
-        <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-muted">
-          Detecta el tipo de arras, extrae los datos clave y señala los riesgos,
-          con referencias al Código Civil.
+        <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-mid">
+          Sube el contrato y en segundos sabrás <strong class="font-semibold text-ink">qué tipo de arras</strong> es,
+          sus datos clave y sus <strong class="font-semibold text-ink">riesgos</strong>, con referencias al
+          Código Civil.
         </p>
-        <p class="mt-4 text-sm text-ink-subtle">
-          Demo pública con límites de uso ·
-          <a class="underline underline-offset-2 hover:text-ink" href="#disclaimer"
-            >no es asesoramiento legal</a
-          >
-        </p>
-      </header>
+        <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <a href="#analizar" class="rounded-pill bg-ink px-7 py-3.5 font-medium text-surface transition-opacity hover:opacity-90">
+            Analizar mi contrato
+          </a>
+          <a href="#tipos" class="rounded-pill border border-ink/20 px-7 py-3.5 font-medium text-ink transition-colors hover:bg-surface">
+            Ver tipos de arras
+          </a>
+        </div>
+        <p class="mt-5 text-sm text-ink-mid">Gratis · privado · sin registro</p>
+      </div>
+    </header>
 
+    <!-- The tool -->
+    <section id="analizar" class="scroll-mt-20 px-5 pb-4 sm:px-8">
+      <div class="mx-auto mb-8 max-w-prose text-center">
+        <h2 class="text-3xl font-semibold tracking-tighter sm:text-4xl">Analiza tu contrato</h2>
+        <p class="mt-3 text-ink-mid">Pega el texto o sube el PDF. No es asesoramiento legal.</p>
+      </div>
       <Analizador />
-    </main>
+    </section>
 
-    <footer class="border-t border-hairline-soft">
-      <div
-        id="disclaimer"
-        class="mx-auto max-w-content px-4 py-12 text-sm leading-relaxed text-ink-muted sm:px-6"
-      >
-        <p class="mx-auto max-w-2xl">
-          <strong class="font-medium text-ink">Aviso legal.</strong>
-          arras-ai es una herramienta experimental y <strong class="font-medium text-ink">no
-          sustituye</strong> el asesoramiento de un abogado o notario. Puede cometer
-          errores; verifica siempre el resultado con el contrato original.
+    <!-- What it detects -->
+    <section class="mx-auto max-w-content px-5 py-20 sm:px-8">
+      <div class="grid gap-5 sm:grid-cols-3">
+        {[
+          { t: "El tipo de arras", d: "Confirmatorias, penitenciales o penales — con un nivel de confianza y la cláusula que lo decide." },
+          { t: "Los datos clave", d: "Precio, señal y su porcentaje, plazos, condición de financiación y cargas del inmueble." },
+          { t: "Los riesgos", d: "Cláusulas problemáticas y omisiones, cada una con su fundamento en el Código Civil." },
+        ].map((c) => (
+          <div class="rounded-lg border border-ink-muted/40 bg-surface p-7">
+            <h3 class="font-serif text-xl">{c.t}</h3>
+            <p class="mt-2 text-ink-mid">{c.d}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Types of arras (SEO + education) -->
+    <section id="tipos" class="scroll-mt-20 border-y border-ink-muted/30 bg-warm/40">
+      <div class="mx-auto max-w-content px-5 py-20 sm:px-8">
+        <h2 class="max-w-2xl text-3xl font-semibold tracking-tighter sm:text-4xl">Los tres tipos de arras</h2>
+        <p class="mt-3 max-w-prose text-ink-mid">
+          El tipo determina qué pasa si alguien se echa atrás. Confundirlos puede costar la señal —
+          o el doble.
         </p>
+        <div class="mt-10 grid gap-8 sm:grid-cols-3">
+          {[
+            { t: "Confirmatorias", d: "La señal es un pago a cuenta del precio y confirma el contrato. Ninguna parte puede desistir libremente: si una incumple, la otra puede exigir el cumplimiento o una indemnización." },
+            { t: "Penitenciales", d: "Reguladas en el art. 1454 CC. Permiten desistir: el comprador pierde las arras y el vendedor las devuelve duplicadas. Son las que dan una salida pactada al contrato." },
+            { t: "Penales", d: "La señal opera como cláusula penal ante el incumplimiento, sin permitir el desistimiento libre. La parte cumplidora puede exigir el cumplimiento o la pena." },
+          ].map((c, i) => (
+            <div>
+              <div class="mb-3 flex h-9 w-9 items-center justify-center rounded-pill border border-ink/20 font-serif text-ink">{i + 1}</div>
+              <h3 class="font-serif text-2xl">{c.t}</h3>
+              <p class="mt-2 text-ink-mid">{c.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="como" class="scroll-mt-20 mx-auto max-w-content px-5 py-20 sm:px-8">
+      <h2 class="text-3xl font-semibold tracking-tighter sm:text-4xl">Cómo funciona</h2>
+      <div class="mt-10 grid gap-8 sm:grid-cols-3">
+        {[
+          { t: "1 · Pega o sube", d: "El texto del contrato o el PDF (hasta 5 MB / 15 páginas)." },
+          { t: "2 · Se anonimiza y analiza", d: "Se eliminan tus datos personales en local y un agente con IA razona sobre las cláusulas." },
+          { t: "3 · Recibes el informe", d: "Tipo, datos, riesgos y fundamentos del Código Civil, listos para revisar con tu abogado." },
+        ].map((c) => (
+          <div class="rounded-lg border border-ink-muted/40 bg-surface p-7">
+            <h3 class="font-semibold tracking-tight">{c.t}</h3>
+            <p class="mt-2 text-ink-mid">{c.d}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Privacy -->
+    <section class="border-y border-ink-muted/30 bg-warm/40">
+      <div class="mx-auto max-w-prose px-5 py-20 text-center sm:px-8">
+        <p class="mb-4 text-sm font-medium uppercase tracking-label text-ink-mid">Privacidad</p>
+        <h2 class="font-serif text-3xl leading-tight tracking-tighter sm:text-4xl">
+          Tus datos no salen de tu lado
+        </h2>
+        <p class="mt-4 text-lg leading-relaxed text-ink-mid">
+          Antes de enviar el contrato para el análisis, se eliminan los identificadores (NIF, IBAN,
+          email, teléfono) y los nombres detectables. La detección ocurre en el servidor, nunca en la
+          nube, y nada personal se almacena ni se devuelve.
+        </p>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="mx-auto max-w-prose px-5 py-20 sm:px-8">
+      <h2 class="text-3xl font-semibold tracking-tighter sm:text-4xl">Preguntas frecuentes</h2>
+      <div class="mt-8 divide-y divide-ink-muted/30">
+        {faqs.map((f) => (
+          <details class="group py-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-medium">
+              {f.q}
+              <span class="text-ink-mid transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+            </summary>
+            <p class="mt-3 leading-relaxed text-ink-mid">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <!-- Footer / disclaimer -->
+    <footer id="disclaimer" class="border-t border-ink-muted/30 bg-warm/40">
+      <div class="mx-auto max-w-content px-5 py-14 sm:px-8">
+        <div class="flex flex-col justify-between gap-6 sm:flex-row">
+          <div class="font-serif text-lg tracking-tighter">arras-ai</div>
+          <p class="max-w-prose text-sm leading-relaxed text-ink-mid">
+            <strong class="font-medium text-ink">Aviso legal.</strong> arras-ai es una herramienta
+            experimental y <strong class="font-medium text-ink">no sustituye</strong> el asesoramiento
+            de un abogado o notario. Puede cometer errores; verifica siempre el resultado con el
+            contrato original.
+          </p>
+        </div>
+        <div class="mt-10 flex flex-wrap items-center gap-4 text-xs text-ink-mid">
+          <span>© {anio} arras-ai · MIT</span>
+          <a href="https://github.com/luispique/arras-ai" rel="noopener" target="_blank" class="hover:text-ink">Código en GitHub</a>
+        </div>
       </div>
     </footer>
   </body>

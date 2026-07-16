@@ -3,22 +3,18 @@ import { EJEMPLOS } from "../examples";
 ---
 
 <section class="mx-auto max-w-2xl">
-  <!-- Product card: white surface lifted onto the cream canvas, 1px hairline, no shadow. -->
-  <div class="rounded-xl border border-hairline bg-surface p-5 sm:p-7">
+  <!-- Product card: light surface on the warm canvas, hairline border, one soft shadow. -->
+  <div class="rounded-xl border border-ink-muted/40 bg-surface p-5 shadow-subtle sm:p-7">
     <!-- Pill tab toggle -->
-    <div
-      class="mb-5 inline-flex rounded-pill bg-canvas p-1"
-      id="tabs"
-      role="tablist"
-    >
+    <div class="mb-5 inline-flex rounded-pill bg-canvas p-1" id="tabs" role="tablist">
       <button
         data-modo="texto"
-        class="tab rounded-pill px-4 py-1.5 text-[15px] font-medium bg-ink text-white"
+        class="tab rounded-pill bg-ink px-4 py-1.5 text-[15px] font-medium text-surface"
         >Pegar texto</button
       >
       <button
         data-modo="pdf"
-        class="tab rounded-pill px-4 py-1.5 text-[15px] font-medium text-ink-muted"
+        class="tab rounded-pill px-4 py-1.5 text-[15px] font-medium text-ink-mid"
         >Subir PDF</button
       >
     </div>
@@ -28,14 +24,14 @@ import { EJEMPLOS } from "../examples";
         id="texto"
         rows="9"
         maxlength="30000"
-        class="w-full resize-y rounded-md border border-hairline bg-surface p-3.5 font-mono text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus:border-ink focus:outline-none"
+        class="w-full resize-y rounded-md border border-ink-muted/50 bg-canvas/40 p-3.5 text-[14px] leading-relaxed text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none"
         placeholder="Pega aquí el texto del contrato de arras…"></textarea>
       <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
-        <span class="text-ink-subtle">Prueba con un ejemplo:</span>
+        <span class="text-ink-mid">Prueba con un ejemplo:</span>
         {
           EJEMPLOS.map((e) => (
             <button
-              class="ejemplo rounded-pill border border-hairline bg-surface px-3 py-1 text-[13px] text-ink-muted transition-colors hover:border-ink hover:text-ink"
+              class="ejemplo rounded-pill border border-ink-muted/50 px-3 py-1 text-[13px] text-ink-mid transition-colors hover:border-ink hover:text-ink"
               data-id={e.id}
             >
               {e.etiqueta}
@@ -47,39 +43,36 @@ import { EJEMPLOS } from "../examples";
 
     <div id="panel-pdf" class="hidden">
       <label
-        class="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-hairline bg-canvas px-4 py-10 text-center transition-colors hover:border-ink"
+        class="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-ink-muted/60 bg-canvas/40 px-4 py-10 text-center transition-colors hover:border-ink"
       >
         <input id="pdf" type="file" accept="application/pdf" class="sr-only" />
         <span class="text-[15px] font-medium text-ink">Selecciona un PDF</span>
-        <span id="pdf-nombre" class="mt-1 text-sm text-ink-subtle"
-          >Máximo 5 MB · 15 páginas</span
-        >
+        <span id="pdf-nombre" class="mt-1 text-sm text-ink-mid">Máximo 5 MB · 15 páginas</span>
       </label>
     </div>
 
     <button
       id="analizar"
-      class="mt-5 inline-flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+      class="mt-5 inline-flex items-center gap-2 rounded-pill bg-ink px-6 py-3 text-[15px] font-medium text-surface transition-opacity hover:opacity-90 disabled:opacity-40"
     >
       <span id="analizar-label">Analizar contrato</span>
       <span
         id="spinner"
-        class="hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+        class="hidden h-4 w-4 animate-spin rounded-full border-2 border-surface/40 border-t-surface"
       ></span>
     </button>
 
     <p
       id="error"
-      class="mt-4 hidden rounded-md border border-danger/20 bg-danger/5 p-3 text-sm text-danger"
+      class="mt-4 hidden rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-danger"
     >
     </p>
 
-    <p class="mt-4 flex items-start gap-1.5 text-xs leading-relaxed text-ink-subtle">
+    <p class="mt-4 flex items-start gap-1.5 text-xs leading-relaxed text-ink-mid">
       <span aria-hidden="true">🔒</span>
       <span
-        >Los datos personales (NIF, IBAN, email, teléfono y nombres detectables) se
-        eliminan del texto <strong class="font-medium text-ink-muted">antes</strong> de
-        enviarlo para el análisis.</span
+        >Los datos personales (NIF, IBAN, email, teléfono y nombres detectables) se eliminan del
+        texto <strong class="font-medium text-ink">antes</strong> de enviarlo para el análisis.</span
       >
     </p>
   </div>
@@ -96,8 +89,8 @@ import { EJEMPLOS } from "../examples";
   const pdf = $("pdf") as HTMLInputElement;
   let modo: "texto" | "pdf" = "texto";
 
-  const TAB_ON = "tab rounded-pill px-4 py-1.5 text-[15px] font-medium bg-ink text-white";
-  const TAB_OFF = "tab rounded-pill px-4 py-1.5 text-[15px] font-medium text-ink-muted";
+  const TAB_ON = "tab rounded-pill px-4 py-1.5 text-[15px] font-medium bg-ink text-surface";
+  const TAB_OFF = "tab rounded-pill px-4 py-1.5 text-[15px] font-medium text-ink-mid";
 
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach((b) =>
     b.addEventListener("click", () => {
@@ -179,8 +172,8 @@ import { EJEMPLOS } from "../examples";
     const datos = v.datos
       .map(
         (d) =>
-          `<div class="flex items-baseline justify-between gap-4 border-b border-hairline-soft py-2 last:border-0">
-            <span class="text-sm text-ink-subtle">${esc(d.label)}</span>
+          `<div class="flex items-baseline justify-between gap-4 border-b border-ink-muted/25 py-2 last:border-0">
+            <span class="text-sm text-ink-mid">${esc(d.label)}</span>
             <span class="text-right text-sm font-medium text-ink">${esc(d.valor)}</span>
           </div>`,
       )
@@ -190,42 +183,42 @@ import { EJEMPLOS } from "../examples";
       ? v.riesgos
           .map(
             (r) => `
-        <div class="rounded-lg border border-hairline bg-surface p-4">
+        <div class="rounded-lg border border-ink-muted/40 bg-surface p-4">
           <div class="flex items-center gap-2">
             <span class="rounded-pill ${r.sevBadge} px-2.5 py-0.5 text-xs font-medium capitalize">${esc(r.severidad)}</span>
             <span class="text-sm font-medium text-ink">${esc(r.categoria)}</span>
           </div>
-          <p class="mt-2 text-sm leading-relaxed text-ink-muted">${esc(r.descripcion)}</p>
+          <p class="mt-2 text-sm leading-relaxed text-ink-mid">${esc(r.descripcion)}</p>
           <p class="mt-2 text-sm leading-relaxed text-ink"><span class="font-medium">Recomendación:</span> ${esc(r.recomendacion)}</p>
           ${
             r.citas.length
-              ? `<p class="mt-2 text-xs text-ink-tertiary">Cf. ${r.citas.map(esc).join(" · ")}</p>`
+              ? `<p class="mt-2 text-xs text-ink-muted">Cf. ${r.citas.map(esc).join(" · ")}</p>`
               : ""
           }
         </div>`,
           )
           .join("")
-      : `<div class="rounded-lg border border-hairline bg-surface p-4 text-sm text-ink-muted">Sin riesgos detectados.</div>`;
+      : `<div class="rounded-lg border border-ink-muted/40 bg-surface p-4 text-sm text-ink-mid">Sin riesgos detectados.</div>`;
 
     $("resultado").innerHTML = `
-      <div class="rounded-xl border border-hairline bg-surface p-5 sm:p-6">
+      <div class="rounded-xl border border-ink-muted/40 bg-surface p-5 shadow-subtle sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p class="text-sm text-ink-subtle">Tipo de arras</p>
-            <p class="text-xl font-medium capitalize tracking-tight text-ink">${esc(v.tipo)}</p>
+            <p class="text-sm text-ink-mid">Tipo de arras</p>
+            <p class="font-serif text-2xl capitalize tracking-tight text-ink">${esc(v.tipo)}</p>
           </div>
           <span class="rounded-pill ${v.nivelBadge} px-3 py-1 text-sm font-medium">Riesgo ${esc(v.nivel.toLowerCase())}</span>
         </div>
-        <div class="mt-3 flex items-center gap-2 text-xs text-ink-subtle">
-          <span class="inline-block h-1.5 w-24 overflow-hidden rounded-pill bg-hairline-soft">
+        <div class="mt-3 flex items-center gap-2 text-xs text-ink-mid">
+          <span class="inline-block h-1.5 w-24 overflow-hidden rounded-pill bg-ink-muted/30">
             <span class="block h-full rounded-pill bg-ink" style="width:${esc(v.confianzaPct)}"></span>
           </span>
           Confianza ${esc(v.confianzaPct)}
         </div>
-        <p class="mt-3 text-sm leading-relaxed text-ink-muted">${esc(v.justificacion)}</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-mid">${esc(v.justificacion)}</p>
       </div>
 
-      <div class="rounded-xl border border-hairline bg-surface p-5 sm:p-6">
+      <div class="rounded-xl border border-ink-muted/40 bg-surface p-5 sm:p-6">
         <p class="mb-2 text-sm font-medium text-ink">Datos del contrato</p>
         ${datos}
       </div>

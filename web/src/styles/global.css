@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Aspekta (Ivo Dolenc, OFL 1.1) — self-hosted geometric sans. See
+   public/fonts/LICENSE-Aspekta.txt. Kameron (serif display) loads from Google Fonts. */
+@font-face {
+  font-family: "Aspekta";
+  src: url("/fonts/Aspekta-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aspekta";
+  src: url("/fonts/Aspekta-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aspekta";
+  src: url("/fonts/Aspekta-550.woff2") format("woff2");
+  font-weight: 550;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aspekta";
+  src: url("/fonts/Aspekta-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aspekta";
+  src: url("/fonts/Aspekta-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     color-scheme: light;
@@ -15,16 +53,30 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Confident geometric display type: negative tracking that eases off at body size. */
-  h1,
-  h2,
-  h3 {
-    letter-spacing: theme("letterSpacing.tighter");
-    font-weight: 500;
-  }
-
   ::selection {
     background-color: theme("colors.ink.DEFAULT");
     color: theme("colors.surface.DEFAULT");
+  }
+}
+
+@layer components {
+  /* Soft grainy gradient blob (yellow-gold + lavender) behind the hero. */
+  .hero-blob {
+    background:
+      radial-gradient(42% 55% at 22% 34%, rgba(233, 196, 106, 0.55), transparent 70%),
+      radial-gradient(46% 60% at 78% 30%, rgba(184, 169, 224, 0.5), transparent 72%),
+      radial-gradient(50% 60% at 55% 78%, rgba(233, 196, 106, 0.28), transparent 70%);
+    filter: blur(46px);
+  }
+  /* Fine grain overlay via SVG turbulence — subtle, editorial. */
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    mix-blend-mode: soft-light;
+    opacity: 0.35;
+  }
+  .frosted {
+    background-color: rgba(241, 240, 234, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 }
