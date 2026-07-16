@@ -111,7 +111,7 @@ describe("aVista", () => {
     };
     expect(() => aVista(informe)).not.toThrow();
     const v = aVista(informe);
-    expect(v.riesgos[0].sevColor).toBe("text-slate-500");
-    expect(v.nivelColor).toBe("bg-slate-600");
+    expect(v.riesgos[0].sevBadge).toBe("bg-surface-alt text-ink-muted");
+    expect(v.nivelBadge).toBe("bg-surface-alt text-ink-muted");
   });
 });

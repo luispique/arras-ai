@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: theme("colors.canvas");
+    color: theme("colors.ink.DEFAULT");
+    font-family: theme("fontFamily.sans");
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Confident geometric display type: negative tracking that eases off at body size. */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: theme("letterSpacing.tighter");
+    font-weight: 500;
+  }
+
+  ::selection {
+    background-color: theme("colors.ink.DEFAULT");
+    color: theme("colors.surface.DEFAULT");
+  }
+}
