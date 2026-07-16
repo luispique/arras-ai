@@ -1,16 +1,18 @@
 """Vercel Python API: a FastAPI app exposing POST /api/analyze.
 
-Deployed as its own Vercel project (Root Directory = repo root); the entrypoint is
-`main:app` (see `[tool.vercel]` in pyproject.toml). The file lives at the repo root
-(not under `api/`) on purpose: Vercel treats `api/*.py` as individual serverless
-functions mounted at their own path, whereas a root-level entrypoint deploys the
-FastAPI app as a single catch-all function that receives the full request path — so
-its `/api/analyze` route is reachable. The Astro frontend is a separate Vercel project
-(Root Directory = web) that proxies `/api/*` here via a rewrite, so the browser stays
-same-origin (no CORS). `app` is a thin FastAPI wrapper over a pure `procesar()`
-(validation + caps + error mapping) that calls the unchanged Python core. The demo
-configures a hosted embedding provider + a /tmp index via env vars; the core is
-otherwise untouched.
+Deployed as its own Vercel project (Root Directory = repo root). Vercel builds
+`api/*.py` as a serverless function (the legacy per-file model — the only Python
+build path enabled on this account); the modern root-level "single ASGI app"
+runtime is permission-gated and silently produces an empty build here. A per-file
+function is addressable only at its own path (`/api/index`), so `vercel.json`
+rewrites every path to it (`/(.*)` -> `/api/index`) and the app accepts POST on any
+path (see the catch-all route) — that makes `/api/analyze` reachable regardless of
+the exact path Vercel hands the function. The Astro frontend is a separate Vercel
+project (Root Directory = web) that proxies `/api/*` here via a rewrite, so the
+browser stays same-origin (no CORS). `app` is a thin FastAPI wrapper over a pure
+`procesar()` (validation + caps + error mapping) that calls the unchanged Python
+core. The demo configures a hosted embedding provider + a /tmp index via env vars;
+the core is otherwise untouched.
 """
 
 from __future__ import annotations
@@ -28,8 +30,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 # The repo `src/` is bundled with the function; make `arras_ai` importable.
-# This file lives at the repo root, so `src/` is a direct child.
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+# This file lives at `api/`, so `src/` is one level up.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from arras_ai.analyzer import AnalysisError  # noqa: E402
 from arras_ai.models import InformeArras  # noqa: E402
@@ -134,9 +136,7 @@ async def _handle(request: Request) -> JSONResponse:
     return JSONResponse(status_code=status, content=result)
 
 
-# The frontend rewrite forwards `/api/*` here preserving the prefix, so the app
-# is reached at `/api/analyze`. The bare `/analyze` is also registered for direct
-# calls to the API deployment (curl, health checks) without the prefix.
+# Explicit routes for the documented paths...
 @app.post("/api/analyze")
 async def analyze_api(request: Request) -> JSONResponse:
     return await _handle(request)
@@ -144,4 +144,14 @@ async def analyze_api(request: Request) -> JSONResponse:
 
 @app.post("/analyze")
 async def analyze_bare(request: Request) -> JSONResponse:
+    return await _handle(request)
+
+
+# ...plus a catch-all: Vercel's per-file function routing (with the `/(.*)` ->
+# `/api/index` rewrite in vercel.json) may deliver the request under a path the
+# explicit routes don't match (e.g. `/api/index`). Accept POST on any path so the
+# analyzer is reachable however Vercel rewrites it. `procesar` still does all
+# validation, so a genuinely bad request is rejected the same way.
+@app.post("/{full_path:path}")
+async def analyze_catch_all(request: Request) -> JSONResponse:
     return await _handle(request)

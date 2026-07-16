@@ -233,7 +233,7 @@ key stays green.
 
 ## Sprint 5: the web demo (two-layer split)
 
-Sprint 5 adds an Astro frontend and a FastAPI Python API (`web/`, `main.py`)
+Sprint 5 adds an Astro frontend and a FastAPI Python API (`web/`, `api/index.py`)
 without touching `src/arras_ai/`. The guiding decision is a **two-layer split**: the
 self-host core keeps its existing defaults, and the hosted demo overrides only what
 serverless requires, through interfaces Sprint 3 already defined.
@@ -261,24 +261,28 @@ decoupled frontend/API architecture, not a workaround downgrade):
   CORS).
 - **API project** — Root Directory the repo root. Here the root `pyproject.toml` is
   correct: this project genuinely *is* the Python app. `[tool.vercel] entrypoint =
-  "main:app"` names the FastAPI `app` so the multi-candidate entrypoint error goes
-  away. The entrypoint lives at the repo root as `main.py`, **not** under `api/`, on
-  purpose: Vercel treats `api/*.py` as individual per-file serverless functions (each
-  mounted at its own path, e.g. `/api/index`), whereas a root-level entrypoint deploys
-  the app as a *single catch-all* function that receives the full request path — so its
-  `/api/analyze` route is actually reachable. A `.vercelignore` trims `web/`, tests, and
-  docs from the function bundle (Python bundles include everything under the root by
-  default; the `functions` key can't be used here because Vercel only matches its
-  patterns against per-file functions under `api/`). One more
-  subtlety: the *core* package's `[project.dependencies]` are the wrong set for
-  serverless — they carry `fastembed` (a ~2 GB model, unused because the demo uses
-  OpenAI embeddings) and omit `fastapi`/`openai` (a dev dep and an optional extra). So
-  `vercel.json` sets `installCommand: "pip install -r api/requirements.txt"` to install
-  a curated runtime set instead of the pyproject deps; `arras_ai` still imports because
-  `main.py` puts `src/` on `sys.path` (no pip-install of the package needed).
+  "api.index:app"` names the FastAPI `app` so the multi-candidate entrypoint error goes
+  away, and `vercel.json`'s `functions["api/**/*.py"]` builds `api/index.py` as a
+  serverless function. This is the *legacy per-file function* model, chosen because it
+  is the only Python build path enabled on the deploy account: the modern root-level
+  "single ASGI app" runtime is permission-gated and, without the permission, silently
+  produces an empty build (a ~90 ms "success" that installs nothing and serves nothing).
+  A per-file function is only addressable at its own path (`/api/index`), so a
+  catch-all rewrite (`{"source": "/(.*)", "destination": "/api/index"}`) routes every
+  path to it, and the app registers a catch-all `POST /{path}` so the analyzer is
+  reachable regardless of the exact path Vercel hands the function. `excludeFiles`
+  trims `web/`, tests, and docs from the bundle (Python bundles include everything under
+  the root by default). One more subtlety: the *core* package's `[project.dependencies]`
+  are the wrong set for serverless — they carry `fastembed` (a ~2 GB model, unused
+  because the demo uses OpenAI embeddings) and omit `fastapi`/`openai` (a dev dep and an
+  optional extra). So `vercel.json` sets `installCommand: "pip install -r
+  api/requirements.txt"` to install a curated runtime set instead of the pyproject
+  deps; `arras_ai` still imports because `api/index.py` puts `src/` on `sys.path` (no
+  pip-install of the package needed).
 
-`main.py` stays a thin HTTP shim: the FastAPI routes (`/api/analyze`, plus a bare
-`/analyze` for direct calls) read the body and delegate to `procesar()`, a pure
+`api/index.py` stays a thin HTTP shim: the FastAPI routes (`/api/analyze`, a bare
+`/analyze`, and a catch-all `POST /{path}`) read the body and delegate to `procesar()`,
+a pure
 function (payload in, `(status, body)` out) that validates input, enforces caps
 (30,000 chars of text, or a 5 MB / 15-page PDF), and maps
 `AnalysisError`/`PdfExtractionError` to 4xx and any other exception to a generic 502
