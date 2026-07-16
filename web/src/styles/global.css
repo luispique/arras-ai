@@ -119,21 +119,13 @@
 }
 
 @layer components {
-  /* Botpress-style hero anchor: a rotated, rounded gradient SQUARE (gold body,
-     green top, lavender bottom-left) that the headline sits over. Not a blurry
-     cloud — the shape stays visible, softened only slightly. */
-  .hero-square {
+  /* Subtle hero anchor: soft, blurred gold + lavender gradient wash (no hard shape). */
+  .hero-blob {
     background:
-      radial-gradient(120% 120% at 22% 100%, rgba(214, 175, 230, 0.95), transparent 46%),
-      radial-gradient(120% 120% at 80% 4%, rgba(178, 208, 150, 0.9), transparent 46%),
-      linear-gradient(135deg, #f4d885 0%, #edc24d 55%, #e7b73c 100%);
-    filter: blur(6px);
-  }
-  /* Fine grain overlay via SVG turbulence — the editorial texture on the blob. */
-  .grain {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
-    mix-blend-mode: soft-light;
-    opacity: 0.5;
+      radial-gradient(42% 55% at 24% 34%, rgba(233, 196, 106, 0.5), transparent 70%),
+      radial-gradient(46% 60% at 76% 30%, rgba(184, 169, 224, 0.45), transparent 72%),
+      radial-gradient(52% 60% at 55% 80%, rgba(233, 196, 106, 0.22), transparent 70%);
+    filter: blur(52px);
   }
   .frosted {
     background-color: rgba(241, 240, 234, 0.7);
