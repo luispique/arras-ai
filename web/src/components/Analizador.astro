@@ -77,7 +77,24 @@ import { EJEMPLOS } from "../examples";
     </p>
   </div>
 
-  <div id="resultado" class="mt-6 space-y-4"></div>
+  <div id="print-root">
+    <div id="print-cabecera" class="mb-6 hidden print:block"></div>
+    <div id="resultado" class="mt-6 space-y-4"></div>
+    <p id="print-aviso" class="mt-6 hidden text-xs leading-relaxed text-ink-mid print:block">
+      Informe generado automáticamente por arras-ai. Herramienta experimental: puede contener
+      errores y <strong>no sustituye</strong> el asesoramiento de un abogado o notario. Verifica
+      siempre el resultado con el contrato original.
+    </p>
+  </div>
+
+  <div id="acciones" class="mt-4 hidden">
+    <button
+      id="descargar"
+      class="inline-flex items-center gap-2 rounded-pill border border-ink/20 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-surface"
+    >
+      <span aria-hidden="true">↓</span> Descargar informe (PDF)
+    </button>
+  </div>
 </section>
 
 <script>
@@ -137,6 +154,8 @@ import { EJEMPLOS } from "../examples";
   async function analizar() {
     $("error").classList.add("hidden");
     $("resultado").innerHTML = "";
+    $("acciones").classList.add("hidden");
+    $("print-cabecera").innerHTML = "";
     let body: Record<string, string>;
     if (modo === "texto") {
       if (!texto.value.trim()) return mostrarError("Pega el texto del contrato.");
@@ -227,7 +246,20 @@ import { EJEMPLOS } from "../examples";
         <p class="mb-2 text-sm font-medium text-ink">Riesgos detectados</p>
         <div class="space-y-3">${riesgos}</div>
       </div>`;
+
+    const fecha = new Date().toLocaleDateString("es-ES", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    $("print-cabecera").innerHTML = `
+      <div class="flex items-baseline justify-between border-b border-ink-muted/40 pb-2">
+        <span class="font-serif text-lg">arras-ai · informe</span>
+        <span class="text-sm text-ink-mid">${esc(fecha)}</span>
+      </div>`;
+    $("acciones").classList.remove("hidden");
   }
 
   $("analizar").addEventListener("click", analizar);
+  $("descargar").addEventListener("click", () => window.print());
 </script>
