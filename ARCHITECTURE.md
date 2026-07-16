@@ -275,10 +275,12 @@ decoupled frontend/API architecture, not a workaround downgrade):
   the root by default). One more subtlety: the *core* package's `[project.dependencies]`
   are the wrong set for serverless — they carry `fastembed` (a ~2 GB model, unused
   because the demo uses OpenAI embeddings) and omit `fastapi`/`openai` (a dev dep and an
-  optional extra). So `vercel.json` sets `installCommand: "pip install -r
-  api/requirements.txt"` to install a curated runtime set instead of the pyproject
-  deps; `arras_ai` still imports because `api/index.py` puts `src/` on `sys.path` (no
-  pip-install of the package needed).
+  optional extra). So `vercel.json` sets `installCommand: "pip install
+  --break-system-packages -r api/requirements.txt"` to install a curated runtime set
+  instead of the pyproject deps (the `--break-system-packages` flag is required because
+  Vercel's build Python is uv-managed and PEP 668 otherwise refuses a bare
+  `pip install`); `arras_ai` still imports because `api/index.py` puts `src/` on
+  `sys.path` (no pip-install of the package needed).
 
 `api/index.py` stays a thin HTTP shim: the FastAPI routes (`/api/analyze`, a bare
 `/analyze`, and a catch-all `POST /{path}`) read the body and delegate to `procesar()`,
