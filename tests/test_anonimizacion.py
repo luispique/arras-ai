@@ -42,10 +42,16 @@ def test_telefono_masked() -> None:
     assert "«TELEFONO_1»" in _anon("Tel. +34 612 345 678")
 
 
-def test_nif_valid_masked_invalid_left_alone() -> None:
-    # 12345678Z has a valid control letter; 12345678A does not.
+def test_nif_masked_by_format_regardless_of_checksum() -> None:
+    # Mask by shape, NOT checksum: a real (or mistyped) NIF must never leak.
     assert _anon("NIF 12345678Z") == "NIF «NIF_1»"
-    assert _anon("Ref 12345678A interna") == "Ref 12345678A interna"
+    assert _anon("DNI 44556677P") == "DNI «NIF_1»"  # invalid checksum, still masked
+    assert _anon("NIF 12345678-Z") == "NIF «NIF_1»"  # hyphen separator
+
+
+def test_nif_shape_does_not_eat_digits_then_word() -> None:
+    # "<8 digits> <word>" must NOT be masked as a NIF (only hyphen, not space).
+    assert _anon("El importe 12345678 y sus intereses") == "El importe 12345678 y sus intereses"
 
 
 def test_nie_valid_masked() -> None:

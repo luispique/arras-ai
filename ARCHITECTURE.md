@@ -349,9 +349,11 @@ a cloud one never is.
 `anonimizacion.py` mirrors the Sprint 3 abstraction pattern: an `Anonimizador`
 interface with a `RegexAnonimizador` (the only backend shipped) and an
 `AnonimizadorNulo` passthrough, built by `make_anonimizador(settings)`. The regex
-backend masks **structured identifiers by strict format** — NIF/NIE (with
-control-letter validation, so amounts never collide), CIF, IBAN, email, phone,
-cadastral reference — reliably, and **person names by best-effort heuristics**
+backend masks **structured identifiers by shape** — NIF/NIE, CIF, IBAN, email,
+phone, cadastral reference — reliably. It deliberately does **not** validate the
+NIF control letter: over-masking a lookalike is harmless, but skipping a real (or
+mistyped) NIF would leak it, and an 8-digit+letter shape can't collide with an
+amount anyway. Names are masked by **best-effort heuristics**
 anchored on the formulaic structure of arras contracts (honorifics, proximity to
 an already-masked NIF token). Masking is **one-way**: `«12345678Z»` → `«NIF_1»`,
 no reverse map, nothing restored. Free-text addresses are a documented limitation

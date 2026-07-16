@@ -7,9 +7,13 @@ reverse map is kept — the legal analysis does not need who signs or where the
 property is, so nothing personal is restored or returned.
 
 Structured identifiers (NIF/NIE/CIF, IBAN, email, phone, cadastral reference) are
-matched by strict format and masked reliably. Person names are best-effort, anchored
-on the formulaic structure of Spanish arras contracts (honorifics, NIF proximity).
-Free-text addresses are out of scope (documented limitation).
+matched **by format** and masked reliably. We deliberately do NOT validate the
+NIF/NIE control letter: in a privacy layer, over-masking a lookalike token is
+harmless, but skipping a real (or mistyped) NIF would leak it. The NIF shape
+(8 digits + a trailing letter) cannot collide with an amount, so format-only
+masking is safe. Person names are best-effort, anchored on the formulaic structure
+of Spanish arras contracts (honorifics, NIF proximity). Free-text addresses are out
+of scope (documented limitation).
 """
 
 from __future__ import annotations
@@ -25,8 +29,6 @@ from pydantic import BaseModel, ConfigDict, Field
 if TYPE_CHECKING:
     from arras_ai.config import Settings
 
-_CONTROL_NIF = "TRWAGMYFPDXBNJZSQVHLCKE"
-_NIE_PREFIJO = {"X": "0", "Y": "1", "Z": "2"}
 _TOKEN_RE = re.compile(r"^«[A-Z_]+_\d+»$")
 
 
@@ -57,14 +59,6 @@ class AnonimizadorNulo(Anonimizador):
         return ResultadoAnonimizacion(texto=texto, recuentos={})
 
 
-def _nif_valido(numero: str, letra: str) -> bool:
-    return _CONTROL_NIF[int(numero) % 23] == letra.upper()
-
-
-def _nie_valido(prefijo: str, resto: str, letra: str) -> bool:
-    return _nif_valido(_NIE_PREFIJO[prefijo.upper()] + resto, letra)
-
-
 class RegexAnonimizador(Anonimizador):
     """Format-based masking for structured identifiers + heuristic name masking."""
 
@@ -72,8 +66,11 @@ class RegexAnonimizador(Anonimizador):
     _EMAIL = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
     _IBAN = re.compile(r"\bES\d{2}(?:[ \-]?\d{4}){5}\b", re.IGNORECASE)
     _TELEFONO = re.compile(r"(?<!\d)(?:(?:\+|00)34[ \-]?)?[6-9]\d{2}[ \-]?\d{3}[ \-]?\d{3}(?!\d)")
-    _NIF = re.compile(r"(?<![\w-])(\d{8})[ \-]?([A-Za-z])(?![\w-])")
-    _NIE = re.compile(r"(?<![\w-])([XYZxyz])[ \-]?(\d{7})[ \-]?([A-Za-z])(?![\w-])")
+    # NIF/NIE by shape (8 digits + letter / [XYZ] + 7 digits + letter). Only a hyphen
+    # is allowed between number and letter (not a space) to avoid matching
+    # "<8 digits> <word>"; the trailing (?![\w-]) keeps a real word from being eaten.
+    _NIF = re.compile(r"(?<![\w-])(\d{8})-?([A-Za-z])(?![\w-])")
+    _NIE = re.compile(r"(?<![\w-])[XYZ]-?\d{7}-?[A-Za-z](?![\w-])", re.IGNORECASE)
     _CIF = re.compile(r"(?<![\w-])[ABCDEFGHJNPQRSUVW][ \-]?\d{7}[ \-]?[0-9A-Ja-j](?![\w-])")
     _CATASTRO = re.compile(r"(?<![\w-])[0-9A-Za-z]{20}(?![\w-])")
 
@@ -108,19 +105,8 @@ class RegexAnonimizador(Anonimizador):
         sub(self._IBAN, "IBAN", lambda m: token("IBAN", _norm(m.group(0))))
         sub(self._TELEFONO, "TELEFONO", lambda m: token("TELEFONO", _norm(m.group(0))))
 
-        def _nif(m: re.Match[str]) -> str:
-            if not _nif_valido(m.group(1), m.group(2)):
-                return m.group(0)
-            return token("NIF", m.group(1) + m.group(2).upper())
-
-        sub(self._NIF, "NIF", _nif)
-
-        def _nie(m: re.Match[str]) -> str:
-            if not _nie_valido(m.group(1), m.group(2), m.group(3)):
-                return m.group(0)
-            return token("NIE", _norm(m.group(0)).upper())
-
-        sub(self._NIE, "NIE", _nie)
+        sub(self._NIF, "NIF", lambda m: token("NIF", m.group(1) + m.group(2).upper()))
+        sub(self._NIE, "NIE", lambda m: token("NIE", _norm(m.group(0)).upper()))
         sub(self._CIF, "CIF", lambda m: token("CIF", _norm(m.group(0)).upper()))
         sub(self._CATASTRO, "CATASTRO", lambda m: token("CATASTRO", m.group(0).upper()))
 
