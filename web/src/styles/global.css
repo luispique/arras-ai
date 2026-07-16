@@ -46,6 +46,21 @@
   font-style: normal;
   font-display: swap;
 }
+/* Kameron (OFL) — self-hosted to remove render-blocking third-party Google Fonts. */
+@font-face {
+  font-family: "Kameron";
+  src: url("/fonts/kameron-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Kameron";
+  src: url("/fonts/kameron-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
 
 @layer base {
   :root {

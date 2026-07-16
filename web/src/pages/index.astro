@@ -49,12 +49,10 @@ const jsonLd = {
     />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_ES" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Kameron:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Preload the fonts used above the fold to cut layout shift (CLS) on first paint. -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/Aspekta-400.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/Aspekta-600.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/kameron-400.woff2" />
     <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
@@ -86,6 +84,7 @@ const jsonLd = {
       </div>
     </nav>
 
+    <main>
     <!-- Hero: bold sans headline over a soft gold/lavender gradient wash -->
     <header class="relative overflow-hidden">
       <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
@@ -225,6 +224,8 @@ const jsonLd = {
         ))}
       </div>
     </section>
+
+    </main>
 
     <!-- Footer / disclaimer -->
     <footer id="disclaimer" class="border-t border-ink-muted/30 bg-warm/40">
