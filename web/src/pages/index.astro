@@ -2,30 +2,83 @@
 import "../styles/global.css";
 import Analizador from "../components/Analizador.astro";
 ---
+
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>arras-ai — analiza tu contrato de arras</title>
+    <meta
+      name="description"
+      content="Analiza un contrato de arras: detecta el tipo, extrae los datos clave y señala los riesgos, con referencias al Código Civil."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
   </head>
-  <body class="bg-slate-50 text-slate-900">
-    <main class="py-10">
-      <header class="mx-auto max-w-3xl px-4 mb-6">
-        <h1 class="text-2xl font-bold">arras-ai</h1>
-        <p class="text-slate-600 mt-1">
-          Analiza un contrato de arras: detecta el tipo, extrae los datos clave y señala
-          los riesgos, con referencias al Código Civil.
+  <body>
+    <!-- Top navigation: 56px, sits on the canvas, no border-radius. -->
+    <nav class="border-b border-hairline-soft">
+      <div
+        class="mx-auto flex h-14 max-w-content items-center justify-between px-4 sm:px-6"
+      >
+        <a href="/" class="flex items-center gap-2 font-medium tracking-tighter">
+          <span
+            class="grid h-6 w-6 place-items-center rounded-md bg-ink text-[13px] font-semibold text-white"
+            >a</span
+          >
+          arras-ai
+        </a>
+        <a
+          href="https://github.com/luispique/arras-ai"
+          class="text-sm text-ink-muted transition-colors hover:text-ink"
+          rel="noopener"
+          target="_blank">GitHub</a
+        >
+      </div>
+    </nav>
+
+    <main class="mx-auto max-w-content px-4 pb-24 sm:px-6">
+      <!-- Hero -->
+      <header class="mx-auto max-w-2xl pt-16 pb-10 text-center sm:pt-24">
+        <p class="mb-4 text-sm font-medium tracking-tight text-ink-muted">
+          Análisis de contratos de arras
         </p>
-        <p class="text-xs text-slate-500 mt-2">
-          Demo pública con límites de uso. <a class="underline" href="#disclaimer">No es asesoramiento legal.</a>
+        <h1
+          class="text-4xl leading-[1.05] tracking-tightest sm:text-6xl"
+        >
+          Entiende tu contrato de arras en segundos
+        </h1>
+        <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-muted">
+          Detecta el tipo de arras, extrae los datos clave y señala los riesgos,
+          con referencias al Código Civil.
+        </p>
+        <p class="mt-4 text-sm text-ink-subtle">
+          Demo pública con límites de uso ·
+          <a class="underline underline-offset-2 hover:text-ink" href="#disclaimer"
+            >no es asesoramiento legal</a
+          >
         </p>
       </header>
+
       <Analizador />
-      <footer id="disclaimer" class="mx-auto max-w-3xl px-4 mt-10 border-t pt-4 text-xs text-slate-500">
-        <strong>Aviso legal:</strong> arras-ai es una herramienta experimental y NO sustituye el
-        asesoramiento de un abogado o notario. Puede cometer errores; verifica siempre el resultado
-        con el contrato original.
-      </footer>
     </main>
+
+    <footer class="border-t border-hairline-soft">
+      <div
+        id="disclaimer"
+        class="mx-auto max-w-content px-4 py-12 text-sm leading-relaxed text-ink-muted sm:px-6"
+      >
+        <p class="mx-auto max-w-2xl">
+          <strong class="font-medium text-ink">Aviso legal.</strong>
+          arras-ai es una herramienta experimental y <strong class="font-medium text-ink">no
+          sustituye</strong> el asesoramiento de un abogado o notario. Puede cometer
+          errores; verifica siempre el resultado con el contrato original.
+        </p>
+      </div>
+    </footer>
   </body>
 </html>

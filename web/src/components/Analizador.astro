@@ -1,36 +1,81 @@
 ---
 import { EJEMPLOS } from "../examples";
 ---
-<section class="mx-auto max-w-3xl px-4">
-  <div class="flex gap-2 mb-3" id="tabs">
-    <button data-modo="texto" class="tab px-3 py-1 rounded bg-slate-900 text-white">Pegar texto</button>
-    <button data-modo="pdf" class="tab px-3 py-1 rounded bg-slate-200">Subir PDF</button>
-  </div>
 
-  <div id="panel-texto">
-    <textarea id="texto" rows="10" maxlength="30000"
-      class="w-full rounded border border-slate-300 p-3 font-mono text-sm"
-      placeholder="Pega aquí el texto del contrato de arras…"></textarea>
-    <div class="mt-2 flex flex-wrap gap-2 text-sm">
-      <span class="text-slate-500 self-center">Ejemplos:</span>
-      {EJEMPLOS.map((e) => (
-        <button class="ejemplo rounded border border-slate-300 px-2 py-1" data-id={e.id}>{e.etiqueta}</button>
-      ))}
+<section class="mx-auto max-w-2xl">
+  <!-- Product card: white surface lifted onto the cream canvas, 1px hairline, no shadow. -->
+  <div class="rounded-xl border border-hairline bg-surface p-5 sm:p-7">
+    <!-- Pill tab toggle -->
+    <div
+      class="mb-5 inline-flex rounded-pill bg-canvas p-1"
+      id="tabs"
+      role="tablist"
+    >
+      <button
+        data-modo="texto"
+        class="tab rounded-pill px-4 py-1.5 text-[15px] font-medium bg-ink text-white"
+        >Pegar texto</button
+      >
+      <button
+        data-modo="pdf"
+        class="tab rounded-pill px-4 py-1.5 text-[15px] font-medium text-ink-muted"
+        >Subir PDF</button
+      >
     </div>
+
+    <div id="panel-texto">
+      <textarea
+        id="texto"
+        rows="9"
+        maxlength="30000"
+        class="w-full resize-y rounded-md border border-hairline bg-surface p-3.5 font-mono text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus:border-ink focus:outline-none"
+        placeholder="Pega aquí el texto del contrato de arras…"></textarea>
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+        <span class="text-ink-subtle">Prueba con un ejemplo:</span>
+        {
+          EJEMPLOS.map((e) => (
+            <button
+              class="ejemplo rounded-pill border border-hairline bg-surface px-3 py-1 text-[13px] text-ink-muted transition-colors hover:border-ink hover:text-ink"
+              data-id={e.id}
+            >
+              {e.etiqueta}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <div id="panel-pdf" class="hidden">
+      <label
+        class="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-hairline bg-canvas px-4 py-10 text-center transition-colors hover:border-ink"
+      >
+        <input id="pdf" type="file" accept="application/pdf" class="sr-only" />
+        <span class="text-[15px] font-medium text-ink">Selecciona un PDF</span>
+        <span id="pdf-nombre" class="mt-1 text-sm text-ink-subtle"
+          >Máximo 5 MB · 15 páginas</span
+        >
+      </label>
+    </div>
+
+    <button
+      id="analizar"
+      class="mt-5 inline-flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+    >
+      <span id="analizar-label">Analizar contrato</span>
+      <span
+        id="spinner"
+        class="hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+      ></span>
+    </button>
+
+    <p
+      id="error"
+      class="mt-4 hidden rounded-md border border-danger/20 bg-danger/5 p-3 text-sm text-danger"
+    >
+    </p>
   </div>
 
-  <div id="panel-pdf" class="hidden">
-    <input id="pdf" type="file" accept="application/pdf" class="block w-full text-sm" />
-    <p class="text-xs text-slate-500 mt-1">Máximo 5 MB / 15 páginas.</p>
-  </div>
-
-  <button id="analizar" class="mt-4 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50">
-    Analizar
-  </button>
-
-  <p id="error" class="mt-3 hidden rounded bg-red-50 p-3 text-sm text-red-700"></p>
-  <div id="cargando" class="mt-4 hidden text-slate-500">Analizando…</div>
-  <div id="resultado" class="mt-6"></div>
+  <div id="resultado" class="mt-6 space-y-4"></div>
 </section>
 
 <script>
@@ -42,14 +87,16 @@ import { EJEMPLOS } from "../examples";
   const pdf = $("pdf") as HTMLInputElement;
   let modo: "texto" | "pdf" = "texto";
 
+  const TAB_ON = "tab rounded-pill px-4 py-1.5 text-[15px] font-medium bg-ink text-white";
+  const TAB_OFF = "tab rounded-pill px-4 py-1.5 text-[15px] font-medium text-ink-muted";
+
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach((b) =>
     b.addEventListener("click", () => {
       modo = b.dataset.modo as "texto" | "pdf";
       $("panel-texto").classList.toggle("hidden", modo !== "texto");
       $("panel-pdf").classList.toggle("hidden", modo !== "pdf");
       document.querySelectorAll<HTMLButtonElement>(".tab").forEach((t) => {
-        const on = t.dataset.modo === modo;
-        t.className = `tab px-3 py-1 rounded ${on ? "bg-slate-900 text-white" : "bg-slate-200"}`;
+        t.className = t.dataset.modo === modo ? TAB_ON : TAB_OFF;
       });
     }),
   );
@@ -61,10 +108,21 @@ import { EJEMPLOS } from "../examples";
     }),
   );
 
+  pdf.addEventListener("change", () => {
+    const f = pdf.files?.[0];
+    $("pdf-nombre").textContent = f ? f.name : "Máximo 5 MB · 15 páginas";
+  });
+
   function mostrarError(msg: string) {
     const el = $("error");
     el.textContent = msg;
     el.classList.remove("hidden");
+  }
+
+  function cargando(on: boolean) {
+    ($("analizar") as HTMLButtonElement).disabled = on;
+    $("spinner").classList.toggle("hidden", !on);
+    $("analizar-label").textContent = on ? "Analizando…" : "Analizar contrato";
   }
 
   async function fileToBase64(f: File): Promise<string> {
@@ -87,8 +145,7 @@ import { EJEMPLOS } from "../examples";
       if (f.size > 5 * 1024 * 1024) return mostrarError("El PDF supera 5 MB.");
       body = { pdf_base64: await fileToBase64(f) };
     }
-    ($("analizar") as HTMLButtonElement).disabled = true;
-    $("cargando").classList.remove("hidden");
+    cargando(true);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -101,8 +158,7 @@ import { EJEMPLOS } from "../examples";
     } catch {
       mostrarError("No se pudo conectar con el servicio.");
     } finally {
-      ($("analizar") as HTMLButtonElement).disabled = false;
-      $("cargando").classList.add("hidden");
+      cargando(false);
     }
   }
 
@@ -111,23 +167,64 @@ import { EJEMPLOS } from "../examples";
   }
 
   function render(v: ReturnType<typeof aVista>) {
-    const datos = v.datos.map((d) => `<div class="flex justify-between border-b py-1"><span class="text-slate-500">${esc(d.label)}</span><span>${esc(d.valor)}</span></div>`).join("");
+    const datos = v.datos
+      .map(
+        (d) =>
+          `<div class="flex items-baseline justify-between gap-4 border-b border-hairline-soft py-2 last:border-0">
+            <span class="text-sm text-ink-subtle">${esc(d.label)}</span>
+            <span class="text-right text-sm font-medium text-ink">${esc(d.valor)}</span>
+          </div>`,
+      )
+      .join("");
+
     const riesgos = v.riesgos.length
-      ? v.riesgos.map((r) => `<div class="rounded border border-slate-200 p-3 mb-2">
-          <div class="${r.sevColor} font-semibold">${esc(r.severidad)} · ${esc(r.categoria)}</div>
-          <p class="text-sm mt-1">${esc(r.descripcion)}</p>
-          <p class="text-sm mt-1"><b>Recomendación:</b> ${esc(r.recomendacion)}</p>
-          ${r.citas.length ? `<p class="text-xs text-slate-500 mt-1">Cf. ${r.citas.map(esc).join(" · ")}</p>` : ""}
-        </div>`).join("")
-      : `<p class="text-slate-500">Sin riesgos detectados.</p>`;
+      ? v.riesgos
+          .map(
+            (r) => `
+        <div class="rounded-lg border border-hairline bg-surface p-4">
+          <div class="flex items-center gap-2">
+            <span class="rounded-pill ${r.sevBadge} px-2.5 py-0.5 text-xs font-medium capitalize">${esc(r.severidad)}</span>
+            <span class="text-sm font-medium text-ink">${esc(r.categoria)}</span>
+          </div>
+          <p class="mt-2 text-sm leading-relaxed text-ink-muted">${esc(r.descripcion)}</p>
+          <p class="mt-2 text-sm leading-relaxed text-ink"><span class="font-medium">Recomendación:</span> ${esc(r.recomendacion)}</p>
+          ${
+            r.citas.length
+              ? `<p class="mt-2 text-xs text-ink-tertiary">Cf. ${r.citas.map(esc).join(" · ")}</p>`
+              : ""
+          }
+        </div>`,
+          )
+          .join("")
+      : `<div class="rounded-lg border border-hairline bg-surface p-4 text-sm text-ink-muted">Sin riesgos detectados.</div>`;
+
     $("resultado").innerHTML = `
-      <div class="rounded-lg border border-slate-200 p-4">
-        <div class="text-lg font-semibold">Tipo de arras: ${esc(v.tipo)} <span class="text-slate-500 text-sm">(confianza ${esc(v.confianzaPct)})</span></div>
-        <p class="text-sm text-slate-600 mt-1">${esc(v.justificacion)}</p>
+      <div class="rounded-xl border border-hairline bg-surface p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-sm text-ink-subtle">Tipo de arras</p>
+            <p class="text-xl font-medium capitalize tracking-tight text-ink">${esc(v.tipo)}</p>
+          </div>
+          <span class="rounded-pill ${v.nivelBadge} px-3 py-1 text-sm font-medium">Riesgo ${esc(v.nivel.toLowerCase())}</span>
+        </div>
+        <div class="mt-3 flex items-center gap-2 text-xs text-ink-subtle">
+          <span class="inline-block h-1.5 w-24 overflow-hidden rounded-pill bg-hairline-soft">
+            <span class="block h-full rounded-pill bg-ink" style="width:${esc(v.confianzaPct)}"></span>
+          </span>
+          Confianza ${esc(v.confianzaPct)}
+        </div>
+        <p class="mt-3 text-sm leading-relaxed text-ink-muted">${esc(v.justificacion)}</p>
       </div>
-      <div class="mt-4 rounded-lg border border-slate-200 p-4">${datos}</div>
-      <div class="mt-4 inline-block rounded ${v.nivelColor} px-3 py-1 text-white font-semibold">Nivel de riesgo: ${esc(v.nivel)}</div>
-      <div class="mt-3">${riesgos}</div>`;
+
+      <div class="rounded-xl border border-hairline bg-surface p-5 sm:p-6">
+        <p class="mb-2 text-sm font-medium text-ink">Datos del contrato</p>
+        ${datos}
+      </div>
+
+      <div>
+        <p class="mb-2 text-sm font-medium text-ink">Riesgos detectados</p>
+        <div class="space-y-3">${riesgos}</div>
+      </div>`;
   }
 
   $("analizar").addEventListener("click", analizar);

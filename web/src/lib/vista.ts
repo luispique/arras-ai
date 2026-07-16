@@ -32,7 +32,7 @@ export interface Informe {
 
 export interface VistaRiesgo {
   severidad: string;
-  sevColor: string;
+  sevBadge: string;
   categoria: string;
   descripcion: string;
   recomendacion: string;
@@ -43,17 +43,24 @@ export interface VistaModel {
   confianzaPct: string;
   justificacion: string;
   nivel: string;
-  nivelColor: string;
+  nivelBadge: string;
   datos: { label: string; valor: string }[];
   riesgos: VistaRiesgo[];
 }
 
 const ORDEN_SEV: Record<string, number> = { alta: 0, media: 1, baja: 2 };
-const SEV_COLOR: Record<string, string> = {
-  alta: "text-red-600", media: "text-amber-600", baja: "text-slate-500",
+// Pill badge classes (background + text) in the Intercom palette; muted fallback.
+const SEV_BADGE_FALLBACK = "bg-surface-alt text-ink-muted";
+const SEV_BADGE: Record<string, string> = {
+  alta: "bg-danger/10 text-danger",
+  media: "bg-warn/10 text-warn",
+  baja: "bg-surface-alt text-ink-muted",
 };
-const NIVEL_COLOR: Record<string, string> = {
-  alto: "bg-red-600", medio: "bg-amber-500", bajo: "bg-emerald-600",
+const NIVEL_BADGE_FALLBACK = "bg-surface-alt text-ink-muted";
+const NIVEL_BADGE: Record<string, string> = {
+  alto: "bg-danger/10 text-danger",
+  medio: "bg-warn/10 text-warn",
+  bajo: "bg-success/10 text-success",
 };
 const TIPO_LABEL: Record<string, string> = { doctrina: "Doctrina", jurisprudencia: "Jurisprudencia" };
 
@@ -71,7 +78,7 @@ export function aVista(informe: Informe): VistaModel {
     .sort((x, y) => (ORDEN_SEV[x.severidad] ?? 9) - (ORDEN_SEV[y.severidad] ?? 9))
     .map((r) => ({
       severidad: r.severidad,
-      sevColor: SEV_COLOR[r.severidad] ?? "text-slate-500",
+      sevBadge: SEV_BADGE[r.severidad] ?? SEV_BADGE_FALLBACK,
       categoria: r.categoria,
       descripcion: r.descripcion,
       recomendacion: r.recomendacion,
@@ -98,7 +105,7 @@ export function aVista(informe: Informe): VistaModel {
     confianzaPct: `${Math.round(a.confianza_tipo * 100)}%`,
     justificacion: a.justificacion_tipo,
     nivel: informe.nivel_riesgo_global.toUpperCase(),
-    nivelColor: NIVEL_COLOR[informe.nivel_riesgo_global] ?? "bg-slate-600",
+    nivelBadge: NIVEL_BADGE[informe.nivel_riesgo_global] ?? NIVEL_BADGE_FALLBACK,
     datos,
     riesgos,
   };
