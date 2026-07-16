@@ -148,3 +148,28 @@
     -webkit-backdrop-filter: blur(12px);
   }
 }
+
+/* Print → PDF: show only the report (with its print-only header + disclaimer),
+   hide the nav, hero, form and everything else. Triggered by the download button. */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  #print-root,
+  #print-root * {
+    visibility: visible !important;
+  }
+  #print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 8px 4px;
+  }
+  #print-root .shadow-subtle {
+    box-shadow: none !important;
+  }
+}
