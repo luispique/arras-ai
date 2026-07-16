@@ -364,7 +364,11 @@ boundaries are drawn so each of the following slots in without a rewrite:
       regressions.
 - [x] **Sprint 5 — Interfaces.** Web demo and CLI/Docker packaging, both done.
 - [x] **Sprint 6 — MCP server.** Expose the analysis as an MCP tool, plus public
-      launch. **All six sprints complete.**
+      launch.
+- [x] **Sprint 7 — Privacy.** A local, mask-only PII anonymization layer strips
+      identifiers (NIF/NIE/CIF, IBAN, email, phone, cadastral reference) and
+      best-effort names from the text before it ever reaches the LLM. Detection is
+      always local; nothing personal is sent or restored. **All sprints complete.**
 
 Scope stays narrow on purpose: **only contratos de arras**, no general
 conveyancing, rentals, or *notas simples*. Specialisation over breadth.

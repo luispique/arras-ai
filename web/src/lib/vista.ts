@@ -68,6 +68,15 @@ function dinero(v: number | null, moneda: string): string {
   return v === null ? "—" : `${v.toLocaleString("es-ES", { minimumFractionDigits: 2 })} ${moneda}`;
 }
 
+// PII is masked before analysis (e.g. «NOMBRE_1»). We never display placeholders.
+const PLACEHOLDER = /^«[A-Z_]+_\d+»$/;
+export function esPlaceholder(v: string | null): boolean {
+  return v !== null && PLACEHOLDER.test(v.trim());
+}
+function limpio(v: string | null): string {
+  return v === null || esPlaceholder(v) ? "—" : v;
+}
+
 function cita(f: Fundamento): string {
   return f.tipo === "codigo_civil" ? f.referencia : `${TIPO_LABEL[f.tipo] ?? f.tipo}: ${f.referencia}`;
 }
@@ -85,16 +94,16 @@ export function aVista(informe: Informe): VistaModel {
       citas: r.referencias.map(cita),
     }));
 
-  const partes = a.partes.length
-    ? a.partes.map((p) => `${p.rol}: ${p.nombre ?? "—"}`).join(", ")
-    : "—";
+  // Show only roles — the personal data (names/NIF) is masked before analysis
+  // and never displayed. The user already has their own contract.
+  const partes = a.partes.length ? a.partes.map((p) => p.rol).join(", ") : "—";
 
   const datos = [
     { label: "Partes", valor: partes },
     { label: "Precio total", valor: dinero(a.importes.precio_total, a.importes.moneda) },
     { label: "Importe arras", valor: dinero(a.importes.importe_arras, a.importes.moneda) },
-    { label: "Dirección", valor: a.inmueble.direccion ?? "—" },
-    { label: "Ref. catastral", valor: a.inmueble.referencia_catastral ?? "—" },
+    { label: "Dirección", valor: limpio(a.inmueble.direccion) },
+    { label: "Ref. catastral", valor: limpio(a.inmueble.referencia_catastral) },
     { label: "Fecha contrato", valor: a.fechas.fecha_contrato ?? "—" },
     { label: "Límite escritura", valor: a.fechas.fecha_limite_escritura ?? "—" },
     { label: "Cláusula financiación", valor: a.tiene_clausula_financiacion ? "sí" : "no" },

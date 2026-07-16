@@ -334,6 +334,45 @@ here — the MCP server is a third self-host consumption path alongside `arras`
 (CLI) and Docker, not a variant of the Sprint 5 web demo's hosted-embeddings
 layer.
 
+## Sprint 7: local PII anonymization
+
+Sprint 7 adds a privacy layer so **no personal data leaves for the third-party
+LLM (or embedding provider)**. The legal reasoning — type of arras, risks,
+amounts, dates — does not depend on *who* signs or *where* the property is, so
+that data is masked before analysis without degrading results.
+
+The guiding principle: **detection is always local.** Routing PII through a cloud
+model to find it would reintroduce the leak, so cloud detectors are excluded by
+design; a *local* open-weights model would be admissible as a future backend, but
+a cloud one never is.
+
+`anonimizacion.py` mirrors the Sprint 3 abstraction pattern: an `Anonimizador`
+interface with a `RegexAnonimizador` (the only backend shipped) and an
+`AnonimizadorNulo` passthrough, built by `make_anonimizador(settings)`. The regex
+backend masks **structured identifiers by shape** — NIF/NIE, CIF, IBAN, email,
+phone, cadastral reference — reliably. It deliberately does **not** validate the
+NIF control letter: over-masking a lookalike is harmless, but skipping a real (or
+mistyped) NIF would leak it, and an 8-digit+letter shape can't collide with an
+amount anyway. Names are masked by **best-effort heuristics**
+anchored on the formulaic structure of arras contracts (honorifics, proximity to
+an already-masked NIF token). Masking is **one-way**: `«12345678Z»` → `«NIF_1»`,
+no reverse map, nothing restored. Free-text addresses are a documented limitation
+(not reliably regex-detectable; a NER backend would cover them).
+
+It wires in at a **single point** — `analizar_texto` masks the text right after
+the empty-check and before building the graph state — so every downstream call
+(extraction, risk LLM pass, and the retrieval query built from extracted facts)
+sees only masked text. It **fails closed**: if anonymization errors, the request
+raises rather than sending raw text. Toggled by `ARRAS_ANONIMIZAR` (default on)
+and `ARRAS_ANONIMIZADOR_PROVIDER`; zero new dependencies (stdlib `re`), so the
+Vercel demo inherits it with no bundle impact. The web report shows party **roles
+only** and renders any masked placeholder as `—`.
+
+Future backends (documented, not built) plug in behind the same interface for
+self-host, where weight is not a constraint: **Presidio** (lighter, purpose-built
+NER for PII) or a **local open-weights LLM** (e.g. Gemma via Ollama) for maximal
+contextual recall on names.
+
 ## Testing strategy
 
 - **Unit tests** (offline, default `pytest` run): schema validation, PDF
