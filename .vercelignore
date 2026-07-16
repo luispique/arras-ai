@@ -1,8 +1,0 @@
-# Trim the Python API function bundle (API project, Root Directory = repo root).
-# The FastAPI app (main.py) only needs src/, api/requirements.txt, pyproject.toml.
-# The Astro frontend is a separate Vercel project (Root Directory = web) and is
-# unaffected by this file. Excludes are relative to the project root.
-web
-tests
-docs
-.github

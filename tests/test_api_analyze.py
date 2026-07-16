@@ -20,9 +20,9 @@ from arras_ai.models import (
 )
 from arras_ai.pdf import PdfExtractionError
 
-# The FastAPI entrypoint is a root-level module; load it by path.
-_ANALYZE = Path(__file__).resolve().parent.parent / "main.py"
-_spec = importlib.util.spec_from_file_location("arras_api_main", _ANALYZE)
+# api/ is not a package; load the FastAPI module by path.
+_ANALYZE = Path(__file__).resolve().parent.parent / "api" / "index.py"
+_spec = importlib.util.spec_from_file_location("api_index", _ANALYZE)
 assert _spec and _spec.loader
 analyze = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(analyze)
@@ -116,9 +116,14 @@ def test_fastapi_route(monkeypatch: pytest.MonkeyPatch) -> None:
     assert ok.status_code == 200
     assert ok.json()["analisis"]["tipo_arras"] == "penitenciales"
 
-    # The bare path is also registered (service rewrite may drop the /api prefix).
+    # The bare path also works.
     bare = client.post("/analyze", json={"texto": "un contrato de arras"})
     assert bare.status_code == 200
+
+    # Catch-all: Vercel rewrites every path to /api/index, so a POST arriving at
+    # an unexpected path must still reach the analyzer.
+    rewritten = client.post("/api/index", json={"texto": "un contrato de arras"})
+    assert rewritten.status_code == 200
 
     bad = client.post("/api/analyze", json={})
     assert bad.status_code == 400
