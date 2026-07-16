@@ -17,7 +17,8 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
 from arras_ai.analyzer import AnalysisError, _build_client, analyze_text
-from arras_ai.config import DEFAULT_MODEL, load_settings
+from arras_ai.anonimizacion import make_anonimizador
+from arras_ai.config import DEFAULT_MODEL, Settings, load_settings
 from arras_ai.models import AnalisisArras, InformeArras, Riesgo, RiesgosDetectadosLLM
 from arras_ai.pdf import extract_text
 from arras_ai.prompts import SYSTEM_PROMPT_RIESGOS, build_user_message_riesgos
@@ -175,6 +176,19 @@ def build_graph(client: anthropic.Anthropic, model: str, kb: KnowledgeBase) -> A
     return builder.compile()
 
 
+def _anonimizar_o_fallar(texto: str, settings: Settings) -> str:
+    """Mask PII locally before the text reaches any LLM. Fail closed on error.
+
+    In a privacy layer, refusing to analyze is safer than leaking: if anonymization
+    fails unexpectedly we raise instead of sending the raw text upstream.
+    """
+    anonimizador = make_anonimizador(settings)  # config errors surface as-is
+    try:
+        return anonimizador.anonimizar(texto).texto
+    except Exception as exc:  # never fall through to sending the raw text
+        raise AnalysisError("No se pudo anonimizar el contrato antes del análisis.") from exc
+
+
 def analizar_texto(
     texto: str,
     *,
@@ -186,6 +200,7 @@ def analizar_texto(
     if not texto.strip():
         raise AnalysisError("Empty contract text.")
     settings = load_settings()
+    texto = _anonimizar_o_fallar(texto, settings)
     if client is None:
         client = _build_client(settings.anthropic_api_key)
     if kb is None:

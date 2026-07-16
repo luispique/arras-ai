@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     voyage_api_key: str | None = Field(default=None, validation_alias="VOYAGE_API_KEY")
     kb_index_dir: str = Field(default=".arras_kb_index", validation_alias="ARRAS_KB_INDEX_DIR")
     judge_model: str = Field(default=DEFAULT_JUDGE_MODEL, validation_alias="ARRAS_JUDGE_MODEL")
+    anonimizar: bool = Field(default=True, validation_alias="ARRAS_ANONIMIZAR")
+    anonimizador_provider: str = Field(
+        default="regex", validation_alias="ARRAS_ANONIMIZADOR_PROVIDER"
+    )
 
 
 def load_settings() -> Settings:
