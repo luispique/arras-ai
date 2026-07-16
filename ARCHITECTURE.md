@@ -266,9 +266,10 @@ decoupled frontend/API architecture, not a workaround downgrade):
   purpose: Vercel treats `api/*.py` as individual per-file serverless functions (each
   mounted at its own path, e.g. `/api/index`), whereas a root-level entrypoint deploys
   the app as a *single catch-all* function that receives the full request path — so its
-  `/api/analyze` route is actually reachable. `vercel.json`
-  `functions["main.py"].excludeFiles` trims `web/`, tests, and docs from the function
-  bundle (Python bundles include everything under the root by default). One more
+  `/api/analyze` route is actually reachable. A `.vercelignore` trims `web/`, tests, and
+  docs from the function bundle (Python bundles include everything under the root by
+  default; the `functions` key can't be used here because Vercel only matches its
+  patterns against per-file functions under `api/`). One more
   subtlety: the *core* package's `[project.dependencies]` are the wrong set for
   serverless — they carry `fastembed` (a ~2 GB model, unused because the demo uses
   OpenAI embeddings) and omit `fastapi`/`openai` (a dev dep and an optional extra). So

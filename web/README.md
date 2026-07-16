@@ -55,8 +55,8 @@ frontend rewrite needs the API's domain.
    -H 'content-type: application/json' -d '{"texto":"contrato de arras ..."}'`
    → 200 (not 500). A 500 with `ModuleNotFoundError: arras_ai` or
    `FileNotFoundError: .../kb_data/...` means `src/` / `kb_data` wasn't bundled
-   (Python bundles everything under the root by default; `excludeFiles` in the root
-   `vercel.json` only prunes `web/`, tests, and docs).
+   (Python bundles everything under the root by default; `.vercelignore` only prunes
+   `web/`, tests, and docs).
 6. Check the function bundle size against Vercel's Python limit (500 MB uncompressed,
    higher with Fluid compute) — `lancedb`/`pyarrow` are heavy.
 
