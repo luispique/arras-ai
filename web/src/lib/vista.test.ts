@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aVista, type Informe } from "./vista";
+import { aVista, esPlaceholder, type Informe } from "./vista";
 
 const base: Informe = {
   analisis: {
@@ -39,9 +39,19 @@ describe("aVista", () => {
     expect(v.nivel).toBe("ALTO");
   });
 
-  it("renders the Partes row from analisis.partes", () => {
-    const v = aVista(base);
-    expect(v.datos[0]).toEqual({ label: "Partes", valor: "comprador: Ana" });
+  it("renders only roles in the Partes row (no names — PII is masked)", () => {
+    const informe: Informe = {
+      ...base,
+      analisis: {
+        ...base.analisis,
+        partes: [
+          { rol: "comprador", nombre: "«NOMBRE_1»", nif: "«NIF_1»" },
+          { rol: "vendedor", nombre: "Ana", nif: null },
+        ],
+      },
+    };
+    const v = aVista(informe);
+    expect(v.datos[0]).toEqual({ label: "Partes", valor: "comprador, vendedor" });
   });
 
   it("renders '—' for Partes when there are no parties", () => {
@@ -51,6 +61,26 @@ describe("aVista", () => {
     };
     const v = aVista(informe);
     expect(v.datos[0]).toEqual({ label: "Partes", valor: "—" });
+  });
+
+  it("hides placeholder values in inmueble fields", () => {
+    const informe: Informe = {
+      ...base,
+      analisis: {
+        ...base.analisis,
+        inmueble: { direccion: "«DIRECCION_1»", referencia_catastral: "«CATASTRO_1»" },
+      },
+    };
+    const v = aVista(informe);
+    expect(v.datos.find((d) => d.label === "Dirección")?.valor).toBe("—");
+    expect(v.datos.find((d) => d.label === "Ref. catastral")?.valor).toBe("—");
+  });
+
+  it("esPlaceholder detects anonymization tokens", () => {
+    expect(esPlaceholder("«NOMBRE_1»")).toBe(true);
+    expect(esPlaceholder("  «NIF_12» ")).toBe(true);
+    expect(esPlaceholder("calle Goya 78")).toBe(false);
+    expect(esPlaceholder(null)).toBe(false);
   });
 
   it("passes a codigo_civil citation through as the bare referencia", () => {
