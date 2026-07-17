@@ -87,12 +87,18 @@ import { EJEMPLOS } from "../examples";
     </p>
   </div>
 
-  <div id="acciones" class="no-print mt-4 hidden">
+  <div id="acciones" class="no-print mt-4 hidden flex-wrap items-center gap-3">
     <button
       id="descargar"
       class="inline-flex items-center gap-2 rounded-pill border border-ink/20 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-surface"
     >
       <span aria-hidden="true">↓</span> Descargar informe (PDF)
+    </button>
+    <button
+      id="limpiar"
+      class="rounded-pill px-4 py-2.5 text-sm font-medium text-ink-mid transition-colors hover:text-ink"
+    >
+      Limpiar
     </button>
   </div>
 </section>
@@ -105,6 +111,18 @@ import { EJEMPLOS } from "../examples";
   const texto = $("texto") as HTMLTextAreaElement;
   const pdf = $("pdf") as HTMLInputElement;
   let modo: "texto" | "pdf" = "texto";
+
+  // Persist the last analysis locally so it survives refresh / navigation.
+  const STORE_KEY = "arras:ultimo-informe";
+  function mostrarAcciones(on: boolean) {
+    $("acciones").classList.toggle("hidden", !on);
+    $("acciones").classList.toggle("flex", on);
+  }
+  function limpiarResultado() {
+    $("resultado").innerHTML = "";
+    $("print-cabecera").innerHTML = "";
+    mostrarAcciones(false);
+  }
 
   const TAB_ON = "tab rounded-pill px-4 py-1.5 text-[15px] font-medium bg-ink text-surface";
   const TAB_OFF = "tab rounded-pill px-4 py-1.5 text-[15px] font-medium text-ink-mid";
@@ -153,9 +171,7 @@ import { EJEMPLOS } from "../examples";
 
   async function analizar() {
     $("error").classList.add("hidden");
-    $("resultado").innerHTML = "";
-    $("acciones").classList.add("hidden");
-    $("print-cabecera").innerHTML = "";
+    limpiarResultado();
     let body: Record<string, string>;
     if (modo === "texto") {
       if (!texto.value.trim()) return mostrarError("Pega el texto del contrato.");
@@ -176,6 +192,11 @@ import { EJEMPLOS } from "../examples";
       const data = await res.json();
       if (!res.ok) return mostrarError(data.error ?? "Error inesperado.");
       render(aVista(data as Informe));
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      } catch {
+        /* storage full or unavailable — non-fatal */
+      }
     } catch {
       mostrarError("No se pudo conectar con el servicio.");
     } finally {
@@ -257,9 +278,25 @@ import { EJEMPLOS } from "../examples";
         <span class="font-serif text-lg">arras-ai · informe</span>
         <span class="text-sm text-ink-mid">${esc(fecha)}</span>
       </div>`;
-    $("acciones").classList.remove("hidden");
+    mostrarAcciones(true);
   }
 
   $("analizar").addEventListener("click", analizar);
   $("descargar").addEventListener("click", () => window.print());
+  $("limpiar").addEventListener("click", () => {
+    try {
+      localStorage.removeItem(STORE_KEY);
+    } catch {
+      /* ignore */
+    }
+    limpiarResultado();
+  });
+
+  // Restore the last analysis on load so it survives refresh / navigation.
+  try {
+    const saved = localStorage.getItem(STORE_KEY);
+    if (saved) render(aVista(JSON.parse(saved) as Informe));
+  } catch {
+    localStorage.removeItem(STORE_KEY);
+  }
 </script>
