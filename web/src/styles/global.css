@@ -150,26 +150,35 @@
 }
 
 /* Print → PDF: show only the report (with its print-only header + disclaimer),
-   hide the nav, hero, form and everything else. Triggered by the download button. */
+   hide the nav, hero, form and everything else. Triggered by the download button.
+   Uses display:none (not visibility) so hidden chrome leaves no blank pages, and
+   keeps each card intact across page breaks. */
 @media print {
+  @page {
+    margin: 1.4cm;
+  }
   body {
     background: #fff !important;
   }
-  body * {
-    visibility: hidden !important;
+  body > nav,
+  body > footer,
+  main > header,
+  main > section:not(#analizar),
+  .no-print {
+    display: none !important;
   }
-  #print-root,
-  #print-root * {
-    visibility: visible !important;
+  #analizar {
+    padding: 0 !important;
+    scroll-margin: 0 !important;
   }
   #print-root {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    padding: 8px 4px;
+    margin: 0 !important;
   }
   #print-root .shadow-subtle {
     box-shadow: none !important;
+  }
+  #print-root .rounded-xl,
+  #print-root .rounded-lg {
+    break-inside: avoid;
   }
 }
