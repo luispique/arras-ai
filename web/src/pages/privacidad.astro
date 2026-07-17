@@ -1,0 +1,102 @@
+---
+import Legal from "../layouts/Legal.astro";
+---
+
+<Legal
+  title="Política de privacidad"
+  description="Cómo trata arras-ai tus datos: anonimización local, sin almacenamiento del contrato, y tus derechos conforme al RGPD."
+>
+  <p>
+    Esta política explica cómo se tratan los datos personales al usar <strong>arras-ai</strong>,
+    la herramienta de análisis de contratos de arras disponible en este sitio. Está redactada
+    conforme al Reglamento (UE) 2016/679 (RGPD) y a la normativa española.
+  </p>
+
+  <h2>Responsable del tratamiento</h2>
+  <p>
+    Luis Piqué. Contacto: <a href="mailto:info@luispique.com">info@luispique.com</a>.
+  </p>
+
+  <h2>Qué datos tratamos y con qué fin</h2>
+  <ul>
+    <li>
+      <strong>El texto o PDF del contrato que envías.</strong> Puede contener datos personales
+      (nombres, NIF, direcciones, importes). Se usa únicamente para generar tu informe de análisis.
+    </li>
+    <li>
+      <strong>Tu dirección IP.</strong> La procesa nuestro proveedor de alojamiento para limitar
+      el abuso del servicio (seguridad).
+    </li>
+  </ul>
+
+  <h2>Anonimización previa</h2>
+  <p>
+    Antes de enviar el texto para su análisis, un proceso <strong>local</strong> elimina del mismo
+    los identificadores estructurados (NIF/NIE/CIF, IBAN, correo electrónico, teléfono, referencia
+    catastral) y los nombres de persona detectables, sustituyéndolos por marcadores. Esta medida es
+    de <strong>mejor esfuerzo</strong>: los identificadores con formato fijo se eliminan de forma
+    fiable, pero algún nombre podría no detectarse. Te recomendamos no subir documentos con datos
+    personales que no estés autorizado a tratar.
+  </p>
+
+  <h2>Base jurídica</h2>
+  <ul>
+    <li>
+      <strong>Tu consentimiento</strong> y la ejecución del servicio que solicitas al enviar el
+      documento (art. 6.1.a y 6.1.b RGPD).
+    </li>
+    <li><strong>Interés legítimo</strong> en la seguridad del servicio para el tratamiento de la IP (art. 6.1.f).</li>
+  </ul>
+
+  <h2>Destinatarios (encargados del tratamiento)</h2>
+  <p>Para prestar el servicio, el texto ya anonimizado se comunica a proveedores que actúan como encargados:</p>
+  <ul>
+    <li><strong>Anthropic</strong> (modelo de IA que realiza el análisis).</li>
+    <li><strong>OpenAI</strong> (generación de <em>embeddings</em> para la búsqueda de patrones).</li>
+    <li><strong>Vercel</strong> (alojamiento del sitio; procesa la IP con fines de seguridad).</li>
+  </ul>
+  <p>
+    No vendemos ni cedemos tus datos a terceros con fines comerciales.
+  </p>
+
+  <h2>Transferencias internacionales</h2>
+  <p>
+    Los proveedores anteriores tratan los datos en servidores ubicados en <strong>EE. UU.</strong>
+    Dichas transferencias se amparan en las garantías que ofrecen estos proveedores (cláusulas
+    contractuales tipo y sus acuerdos de tratamiento de datos).
+  </p>
+
+  <h2>Conservación</h2>
+  <p>
+    <strong>No almacenamos el contrato ni el informe en nuestros servidores.</strong> El texto se
+    procesa en el momento y no se guarda. El informe resultante se guarda <strong>únicamente en tu
+    navegador</strong> (almacenamiento local del dispositivo) para que no se pierda al recargar la
+    página; permanece ahí hasta que pulsas «Limpiar» o borras los datos de navegación. Nosotros no
+    tenemos acceso a ese almacenamiento.
+  </p>
+
+  <h2>Cookies</h2>
+  <p>
+    Este sitio no utiliza cookies de seguimiento ni de analítica. Solo empleamos el almacenamiento
+    local del navegador con una finalidad estrictamente funcional (recordar tu último análisis), que
+    puedes borrar en cualquier momento.
+  </p>
+
+  <h2>Tus derechos</h2>
+  <p>
+    Puedes ejercer los derechos de acceso, rectificación, supresión, oposición, limitación del
+    tratamiento y portabilidad escribiendo a
+    <a href="mailto:info@luispique.com">info@luispique.com</a>. Si consideras que el tratamiento no
+    se ajusta a la normativa, puedes reclamar ante la Agencia Española de Protección de Datos
+    (<a href="https://www.aepd.es" rel="noopener" target="_blank">www.aepd.es</a>).
+  </p>
+
+  <h2>Menores</h2>
+  <p>El servicio no está dirigido a menores de edad.</p>
+
+  <h2>Cambios</h2>
+  <p>
+    Podemos actualizar esta política para reflejar cambios en el servicio o en la normativa. La
+    fecha de la última actualización figura al inicio.
+  </p>
+</Legal>
