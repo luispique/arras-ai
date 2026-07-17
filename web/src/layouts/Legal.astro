@@ -1,0 +1,53 @@
+---
+import "../styles/global.css";
+interface Props {
+  title: string;
+  description: string;
+  actualizado?: string;
+}
+const { title, description, actualizado = "17 de julio de 2026" } = Astro.props;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · arras-ai</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index,follow" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/Aspekta-400.woff2" />
+  </head>
+  <body>
+    <nav class="frosted sticky top-0 z-30 border-b border-ink-muted/30">
+      <div class="mx-auto flex h-16 max-w-content items-center justify-between px-5 sm:px-8">
+        <a href="/" class="flex items-center gap-2 text-lg font-bold tracking-tighter">
+          <span class="grid h-7 w-7 place-items-center rounded-md bg-ink text-sm font-bold text-surface">a</span>
+          arras-ai
+        </a>
+        <a href="/" class="text-[15px] text-ink-mid transition-colors hover:text-ink">← Volver</a>
+      </div>
+    </nav>
+
+    <main>
+      <article class="legal mx-auto max-w-prose px-5 py-16 sm:px-8">
+        <h1 class="heading-h2">{title}</h1>
+        <p class="mt-1 text-sm text-ink-muted">Última actualización: {actualizado}</p>
+        <div class="mt-8">
+          <slot />
+        </div>
+      </article>
+    </main>
+
+    <footer class="border-t border-ink-muted/30 bg-warm/40">
+      <div
+        class="mx-auto flex max-w-content flex-wrap items-center gap-x-5 gap-y-2 px-5 py-8 text-xs text-ink-mid sm:px-8"
+      >
+        <span class="font-serif text-sm tracking-tighter text-ink">arras-ai</span>
+        <a href="/aviso-legal" class="hover:text-ink">Aviso legal</a>
+        <a href="/privacidad" class="hover:text-ink">Privacidad</a>
+        <a href="/terminos" class="hover:text-ink">Términos</a>
+        <a href="https://github.com/luispique/arras-ai" rel="noopener" target="_blank" class="hover:text-ink">GitHub</a>
+      </div>
+    </footer>
+  </body>
+</html>
