@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 import Analizador from "../components/Analizador.astro";
+import CookieConsent from "../components/CookieConsent.astro";
 
 const anio = 2026;
 const faqs = [
@@ -244,6 +245,7 @@ const jsonLd = {
           <a href="/aviso-legal" class="hover:text-ink">Aviso legal</a>
           <a href="/privacidad" class="hover:text-ink">Privacidad</a>
           <a href="/terminos" class="hover:text-ink">Términos</a>
+          <a href="#" data-cookies class="hover:text-ink">Cookies</a>
           <a href="https://github.com/luispique/arras-ai" rel="noopener" target="_blank" class="hover:text-ink">GitHub</a>
           <a href="https://www.linkedin.com/in/luispique/" rel="noopener" target="_blank" class="hover:text-ink">LinkedIn</a>
           <span
@@ -257,5 +259,7 @@ const jsonLd = {
         </div>
       </div>
     </footer>
+
+    <CookieConsent />
   </body>
 </html>

@@ -1,0 +1,99 @@
+---
+// RGPD cookie consent. Google Analytics loads ONLY after explicit "Aceptar".
+// Choice is stored locally; "Rechazar" is equally accessible; consent can be
+// re-opened from any [data-cookies] element (e.g. the footer "Cookies" link).
+const GA_ID = "G-DSG6C48FK3";
+---
+
+<div
+  id="cookie-banner"
+  role="region"
+  aria-label="Aviso de cookies"
+  class="no-print fixed inset-x-0 bottom-0 z-50 hidden border-t border-ink-muted/40 bg-surface/95 backdrop-blur-sm"
+>
+  <div
+    class="mx-auto flex max-w-content flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8"
+  >
+    <p class="text-sm leading-relaxed text-ink-mid">
+      Usamos cookies de <strong class="font-medium text-ink">Google Analytics</strong> para medir el
+      uso del sitio. Solo se activan si las aceptas. Más información en la
+      <a href="/privacidad" class="underline hover:text-ink">Política de privacidad</a>.
+    </p>
+    <div class="flex shrink-0 gap-2">
+      <button
+        id="cookie-reject"
+        class="rounded-pill border border-ink/20 px-5 py-2 text-sm font-medium text-ink transition-colors hover:bg-canvas"
+      >
+        Rechazar
+      </button>
+      <button
+        id="cookie-accept"
+        class="rounded-pill bg-ink px-5 py-2 text-sm font-medium text-surface transition-opacity hover:opacity-90"
+      >
+        Aceptar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script is:inline define:vars={{ GA_ID }}>
+  (function () {
+    var KEY = "arras:consent-analytics";
+    var banner = document.getElementById("cookie-banner");
+
+    function loadGA() {
+      if (window.__gaLoaded) return;
+      window.__gaLoaded = true;
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () {
+        window.dataLayer.push(arguments);
+      };
+      window.gtag("js", new Date());
+      window.gtag("config", GA_ID);
+    }
+    function show() {
+      if (banner) banner.classList.remove("hidden");
+    }
+    function hide() {
+      if (banner) banner.classList.add("hidden");
+    }
+
+    var choice = null;
+    try {
+      choice = localStorage.getItem(KEY);
+    } catch (e) {}
+
+    if (choice === "granted") loadGA();
+    else if (choice !== "denied") show();
+
+    var accept = document.getElementById("cookie-accept");
+    var reject = document.getElementById("cookie-reject");
+    if (accept)
+      accept.addEventListener("click", function () {
+        try {
+          localStorage.setItem(KEY, "granted");
+        } catch (e) {}
+        loadGA();
+        hide();
+      });
+    if (reject)
+      reject.addEventListener("click", function () {
+        try {
+          localStorage.setItem(KEY, "denied");
+        } catch (e) {}
+        hide();
+      });
+
+    // Let a footer "Cookies" link (or any [data-cookies]) reopen the banner to change choice.
+    document.querySelectorAll("[data-cookies]").forEach(function (el) {
+      el.addEventListener("click", function (e) {
+        e.preventDefault();
+        show();
+      });
+    });
+  })();
+</script>
