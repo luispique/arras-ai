@@ -43,6 +43,8 @@ const jsonLd = {
       content="Sube tu contrato de arras y descubre en segundos qué tipo es (confirmatorias, penitenciales o penales), sus datos clave y sus riesgos, con referencias al Código Civil. Gratis y privado."
     />
     <meta name="robots" content="index,follow" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site).href} />
     <meta property="og:title" content="arras-ai: analiza tu contrato de arras con IA" />
     <meta
       property="og:description"
