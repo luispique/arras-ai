@@ -16,6 +16,12 @@ const { title, description, actualizado = "17 de julio de 2026" } = Astro.props;
     <title>{title} · arras-ai</title>
     <meta name="description" content={description} />
     <meta name="robots" content="index,follow" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site).href} />
+    <meta property="og:title" content={`${title} · arras-ai`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/Aspekta-400.woff2" />
   </head>
   <body>

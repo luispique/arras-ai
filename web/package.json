@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.2.1",
     "astro": "^4.15.0"
   },
   "devDependencies": {

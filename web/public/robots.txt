@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://analizatusarras.es/sitemap-index.xml
