@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://analizatusarras.es/sitemap-index.xml
+Sitemap: https://analizatusarras.es/sitemap.xml

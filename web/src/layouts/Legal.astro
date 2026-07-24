@@ -13,12 +13,13 @@ const { title, description, actualizado = "17 de julio de 2026" } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} · arras-ai</title>
+    <title>{title} · Analiza tus arras</title>
     <meta name="description" content={description} />
     <meta name="robots" content="index,follow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
     <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site).href} />
-    <meta property="og:title" content={`${title} · arras-ai`} />
+    <meta property="og:title" content={`${title} · Analiza tus arras`} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_ES" />
@@ -29,7 +30,7 @@ const { title, description, actualizado = "17 de julio de 2026" } = Astro.props;
       <div class="mx-auto flex h-16 max-w-content items-center justify-between px-5 sm:px-8">
         <a href="/" class="flex items-center gap-2 text-lg font-bold tracking-tighter">
           <span class="grid h-7 w-7 place-items-center rounded-md bg-ink text-sm font-bold text-surface">a</span>
-          arras-ai
+          Analiza tus arras
         </a>
         <a href="/" class="text-[15px] text-ink-mid transition-colors hover:text-ink">← Volver</a>
       </div>
@@ -49,7 +50,7 @@ const { title, description, actualizado = "17 de julio de 2026" } = Astro.props;
       <div
         class="mx-auto flex max-w-content flex-wrap items-center gap-x-5 gap-y-2 px-5 py-8 text-xs text-ink-mid sm:px-8"
       >
-        <span class="font-serif text-sm tracking-tighter text-ink">arras-ai</span>
+        <span class="font-serif text-sm tracking-tighter text-ink">Analiza tus arras</span>
         <a href="/aviso-legal" class="hover:text-ink">Aviso legal</a>
         <a href="/privacidad" class="hover:text-ink">Privacidad</a>
         <a href="/terminos" class="hover:text-ink">Términos</a>
