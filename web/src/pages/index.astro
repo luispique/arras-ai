@@ -14,7 +14,7 @@ const faqs = [
     a: "En las confirmatorias la señal es un pago a cuenta y ninguna parte puede desistir sin incumplir. En las penitenciales (art. 1454 CC) cualquiera puede desistir: el comprador pierde las arras y el vendedor las devuelve duplicadas. En las penales la señal funciona como cláusula penal ante el incumplimiento.",
   },
   {
-    q: "¿arras-ai sustituye a un abogado?",
+    q: "¿La herramienta sustituye a un abogado?",
     a: "No. Es una herramienta de apoyo que interpreta el contrato de forma automática y puede equivocarse. Antes de firmar o actuar, consulta siempre con un abogado o notario.",
   },
   {
@@ -31,32 +31,55 @@ const jsonLd = {
     acceptedAnswer: { "@type": "Answer", text: f.a },
   })),
 };
+const appLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Analiza tus arras",
+  url: "https://analizatusarras.es",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  inLanguage: "es-ES",
+  isAccessibleForFree: true,
+  description:
+    "Analiza contratos de arras con IA: detecta el tipo (confirmatorias, penitenciales o penales), extrae los datos clave y señala riesgos con referencias al Código Civil.",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+  author: { "@type": "Person", name: "Luis Piqué", url: "https://www.luispique.com/" },
+};
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>arras-ai: analiza tu contrato de arras con IA, gratis</title>
+    <title>Analiza tus arras · revisa tu contrato de arras con IA, gratis</title>
     <meta
       name="description"
       content="Sube tu contrato de arras y descubre en segundos qué tipo es (confirmatorias, penitenciales o penales), sus datos clave y sus riesgos, con referencias al Código Civil. Gratis y privado."
     />
     <meta name="robots" content="index,follow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
+    <meta property="og:site_name" content="Analiza tus arras" />
     <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site).href} />
-    <meta property="og:title" content="arras-ai: analiza tu contrato de arras con IA" />
+    <meta property="og:title" content="Analiza tus arras · revisa tu contrato de arras con IA" />
     <meta
       property="og:description"
       content="Tipo de arras, datos clave y riesgos con referencias al Código Civil. Gratis, privado, en segundos."
     />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_ES" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Analiza tus arras · revisa tu contrato de arras con IA" />
+    <meta
+      name="twitter:description"
+      content="Tipo de arras, datos clave y riesgos con referencias al Código Civil. Gratis y privado."
+    />
     <!-- Preload the fonts used above the fold to cut layout shift (CLS) on first paint. -->
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/Aspekta-400.woff2" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/Aspekta-600.woff2" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/kameron-400.woff2" />
     <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(appLd)} />
   </head>
   <body>
     <!-- Frosted, warm-tinted nav: logo · centered links · CTAs -->
@@ -64,7 +87,7 @@ const jsonLd = {
       <div class="mx-auto grid h-16 max-w-content grid-cols-[1fr_auto_1fr] items-center px-5 sm:px-8">
         <a href="/" class="flex items-center gap-2 justify-self-start text-lg font-bold tracking-tighter">
           <span class="grid h-7 w-7 place-items-center rounded-md bg-ink text-sm font-bold text-surface">a</span>
-          arras-ai
+          Analiza tus arras
         </a>
         <div class="hidden items-center gap-8 justify-self-center text-[15px] md:flex">
           <a href="#tipos" class="text-ink-mid transition-colors hover:text-ink">Tipos de arras</a>
@@ -234,16 +257,16 @@ const jsonLd = {
     <footer id="disclaimer" class="border-t border-ink-muted/30 bg-warm/40">
       <div class="mx-auto max-w-content px-5 py-14 sm:px-8">
         <div class="flex flex-col justify-between gap-6 sm:flex-row">
-          <div class="font-serif text-lg tracking-tighter">arras-ai</div>
+          <div class="font-serif text-lg tracking-tighter">Analiza tus arras</div>
           <p class="max-w-prose text-sm leading-relaxed text-ink-mid">
-            <strong class="font-medium text-ink">Aviso legal.</strong> arras-ai es una herramienta
+            <strong class="font-medium text-ink">Aviso legal.</strong> Analiza tus arras es una herramienta
             experimental y <strong class="font-medium text-ink">no sustituye</strong> el asesoramiento
             de un abogado o notario. Puede cometer errores; verifica siempre el resultado con el
             contrato original.
           </p>
         </div>
         <div class="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-mid">
-          <span>© {anio} arras-ai · MIT</span>
+          <span>© {anio} Analiza tus arras · MIT</span>
           <a href="/aviso-legal" class="hover:text-ink">Aviso legal</a>
           <a href="/privacidad" class="hover:text-ink">Privacidad</a>
           <a href="/terminos" class="hover:text-ink">Términos</a>
