@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#09090b" />
-  <text x="16" y="22" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
-    font-size="20" font-weight="700" fill="#f6f7f6">a</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#09090b" />
+  <g transform="translate(16,16) scale(0.857)" fill="#f6f7f6">
+    <path d="M16 17 H73 C85.7 17 96 27.3 96 40 V97 H70 V56 C70 49.4 64.6 44 58 44 H16 Z" />
+    <path d="M16 54 H37 L59 76 V97 H38 L16 75 Z" />
+  </g>
 </svg>
