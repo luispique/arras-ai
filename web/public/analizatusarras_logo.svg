@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112">
+  <title>Logo geométrico vectorizado</title>
+  <g fill="#09090b">
+    <!-- Pieza principal -->
+    <path d="
+      M16 17
+      H73
+      C85.7 17 96 27.3 96 40
+      V97
+      H70
+      V56
+      C70 49.4 64.6 44 58 44
+      H16
+      Z"/>
+    <!-- Pieza inferior izquierda -->
+    <path d="
+      M16 54
+      H37
+      L59 76
+      V97
+      H38
+      L16 75
+      Z"/>
+  </g>
+</svg>
